@@ -66,7 +66,10 @@
 						<br>
 						@if($product->enable_stock)
 							<b>@lang('product.alert_quantity'): </b>
-							{{$product->alert_quantity ?? '--' }}
+							@php
+								$alert_quantity = number_format($product->alert_quantity, 0, '.', ',');
+							@endphp
+							{{$alert_quantity ?? '--' }}
 						@endif
 
 						@if(!empty($product->warranty))

@@ -182,13 +182,25 @@ class BoulevardImportDataController extends Controller
                     $barcode_type = 'UPCA';
                     $product_array['barcode_type'] = $barcode_type;
 
-                    $tax_name = null;
-                    $product_array['tax'] = $tax_name;
-                    $tax_amount = 0;
+                    // $tax_name = null;
+                    // $product_array['tax'] = $tax_name;
+                    // $tax_amount = 0;
+
+                    //Add Tax
+                    $tax = TaxRate::where('business_id', $business_id)
+                                    ->where('name', "Product Tax")
+                                    ->first();
+                    if (! empty($tax)) {
+                        $product_array['tax'] = $tax->id;
+                        $tax_amount = $tax->amount;
+                    } else {
+                        $product_array['tax'] = null;
+                        $tax_amount = 0;
+                    }
 
                     $tax_type = 'exclusive';
                     $product_array['tax_type'] = $tax_type;
-                    $product_array['alert_quantity'] = null;
+                    $product_array['alert_quantity'] = 5;
                     //Add brand
                     //Check if brand exists else create new
                     $brand_name = trim($value['node']['brandName']);
@@ -226,14 +238,19 @@ class BoulevardImportDataController extends Controller
                         $product_array['variation']['profit_percent'] = $profit_margin;
 
                         //Calculate purchase price
-                        $dpp_inc_tax = trim($value['node']['unitCost']);
+                        $dpp_inc_tax = 0;
                         $dpp_exc_tax = trim($value['node']['unitCost']);
                         if ($dpp_inc_tax == '' && $dpp_exc_tax == '') {
                             // $is_valid = false;
                             // $error_msg = "PURCHASE PRICE is required!!";
                             // break;
+                            $dpp_inc_tax = 0;
+                            $dpp_exc_tax = 0;
                         } else {
-                            $dpp_inc_tax = ($dpp_inc_tax != '') ? number_format($dpp_inc_tax / 100, 2, '.', '') : 0;
+                            if($tax_amount == 0)
+                            {
+                                $dpp_inc_tax = ($dpp_inc_tax != '') ? number_format($dpp_inc_tax / 100, 2, '.', '') : 0;
+                            }
                             $dpp_exc_tax = ($dpp_exc_tax != '') ? number_format($dpp_exc_tax / 100, 2, '.', '') : 0;
                         }
                         //Calculate Selling price
