@@ -59,6 +59,7 @@ use App\Http\Controllers\UnitController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\VariationTemplateController;
 use App\Http\Controllers\WarrantyController;
+use App\Http\Controllers\BoulevardImportDataController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -342,6 +343,10 @@ Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone', 
     //Import products
     Route::get('/import-products', [ImportProductsController::class, 'index']);
     Route::post('/import-products/store', [ImportProductsController::class, 'store']);
+    
+    //Import boulevard data
+    Route::get('/import-boulevard-products', [BoulevardImportDataController::class, 'index']);
+    Route::post('/import-boulevard-products/store', [BoulevardImportDataController::class, 'store']);
 
     //Sales Commission Agent
     Route::resource('sales-commission-agents', SalesCommissionAgentController::class);

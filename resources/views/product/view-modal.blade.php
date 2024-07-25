@@ -99,7 +99,13 @@
 						<b>@lang('product.selling_price_tax_type'): </b>
 						{{$tax_type[$product->tax_type]  }}<br>
 						<b>@lang('product.product_type'): </b>
-						@lang('lang_v1.' . $product->type)
+						@lang('lang_v1.' . $product->type)<br>
+						<b>@lang('product.barcode'): </b>
+						{{$product->barcode}}<br>
+						<b>@lang('product.color'): </b>
+						{{$product->color}}<br>
+						<b>@lang('product.size'): </b>
+						{{$product->size}}<br>
 						
 	      			</div>
 	      			<div class="clearfix"></div>

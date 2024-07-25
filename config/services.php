@@ -31,4 +31,11 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    'blvd_api' => [
+        'key' => env('API_KEY'),
+        'secret' => env('API_SECRET'),
+        'business_id' => env('BUSINESS_ID'),
+        'api_base_url' => env('API_BLVD_BASE_URL'),
+    ],
+
 ];
