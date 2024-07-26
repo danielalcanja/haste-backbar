@@ -76,10 +76,13 @@ use Illuminate\Support\Facades\Route;
 include_once 'install_r.php';
 
 Route::middleware(['setData'])->group(function () {
+    // Route::get('/', function () {
+    //     return view('welcome');
+    // });
     Route::get('/', function () {
-        return view('welcome');
+        return redirect()->route('login');
     });
-
+    
     Auth::routes();
 
     Route::get('/business/register', [BusinessController::class, 'getRegister'])->name('business.getRegister');
