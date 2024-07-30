@@ -2925,6 +2925,17 @@ class TransactionUtil extends Util
                             ->whereIn('type', ['expense', 'expense_refund']);
         // ->where('payment_status', 'paid');
 
+        if (isset($filters['only_recurring'])) {
+            // $query->where('transactions.is_recurring', 1)
+            //       ->whereNull('recur_stopped_on')
+            //       ->whereNotNull('recur_interval')
+            //       ->whereNotNull('recur_interval_type');
+                 
+                   
+            $query->whereNotNull('transactions.recur_parent_id')
+                ->orWhere('transactions.is_recurring', 1);
+                 
+        }
 
         if(!empty($permitted_locations)){
             if ($permitted_locations != 'all') {

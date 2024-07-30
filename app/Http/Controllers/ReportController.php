@@ -1033,11 +1033,14 @@ class ReportController extends Controller
         }
 
         $business_id = $request->session()->get('user.business_id');
-        $filters = $request->only(['category', 'location_id']);
+        $filters = $request->only(['category', 'location_id','only_recurring']);
 
         $date_range = $request->input('date_range');
         $category_select = $request->input('category');
-
+        $is_recurring = 0;
+        if (request()->only_recurring) {
+            $is_recurring = $request->input('only_recurring');
+        }
         if (! empty($date_range)) {
             $date_range_array = explode('~', $date_range);
             $filters['start_date'] = $this->transactionUtil->uf_date(trim($date_range_array[0]));
@@ -1069,7 +1072,7 @@ class ReportController extends Controller
         $business_locations = BusinessLocation::forDropdown($business_id, true);
 
         return view('report.expense_report')
-                    ->with(compact('chart', 'categories', 'business_locations', 'expenses','date_range','category_select'));
+                    ->with(compact('chart', 'categories', 'business_locations', 'expenses','date_range','category_select','is_recurring'));
     }
 
     /**

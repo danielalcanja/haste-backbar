@@ -14,10 +14,25 @@
         <div class="col-md-12">
             @component('components.filters', ['title' => __('report.filters')])
               {!! Form::open(['url' => action([\App\Http\Controllers\ReportController::class, 'getExpenseReport']), 'method' => 'get' ]) !!}
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <div class="form-group">
                         {!! Form::label('location_id',  __('purchase.business_location') . ':') !!}
                         {!! Form::select('location_id', $business_locations, null, ['class' => 'form-control select2', 'style' => 'width:100%']); !!}
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="form-group">
+                        <div class="checkbox">
+                            <label>
+                                <br>
+                                @php
+                                    $only_recurring = ($is_recurring == 1) ? true : false;
+                                @endphp
+
+                                {!! Form::checkbox('only_recurring', 1, $only_recurring, 
+                                [ 'class' => 'input-icheck', 'id' => 'only_recurring']); !!} {{ __('lang_v1.is_recurring') }}
+                            </label>
+                        </div>
                     </div>
                 </div>
                 <div class="col-md-4">
@@ -27,7 +42,7 @@
                         __('report.all'), 'class' => 'form-control select2', 'style' => 'width:100%', 'id' => 'category_id']); !!}
                     </div>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <div class="form-group">
                     @php
                         // Get the start and end dates of the current month in the desired format
