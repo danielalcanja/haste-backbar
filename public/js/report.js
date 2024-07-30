@@ -201,7 +201,38 @@ $(document).ready(function() {
 
     if ($('#trending_product_date_range').length == 1) {
         get_sub_categories();
+
+        // Define the start and end dates of the current month
+        var startOfMonth = moment().startOf('month');
+        var endOfMonth = moment().endOf('month');
+
+        // Extract date range from URL
+        function getQueryParam(name) {
+            var regex = new RegExp('[?&]' + name + '=([^&]*)');
+            var results = regex.exec(window.location.search);
+            return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
+        }
+
+        var dateRangeParam = getQueryParam('date_range');
+        var startDate, endDate;
+
+        if (dateRangeParam) {
+            var dates = dateRangeParam.split(' ~ ');
+            if (dates.length === 2) {
+                startDate = moment(dates[0], 'MM/DD/YYYY');
+                endDate = moment(dates[1], 'MM/DD/YYYY');
+            }
+        }
+
+        // Set default to current month if no valid date range from URL
+        if (!startDate || !endDate) {
+            startDate = startOfMonth;
+            endDate = endOfMonth;
+        }
+
         $('#trending_product_date_range').daterangepicker({
+            startDate: startDate,
+            endDate: endDate,
             ranges: ranges,
             autoUpdateInput: false,
             locale: {
@@ -211,11 +242,12 @@ $(document).ready(function() {
                 customRangeLabel: LANG.custom_range,
             },
         });
+
         $('#trending_product_date_range').on('apply.daterangepicker', function(ev, picker) {
             $(this).val(
                 picker.startDate.format(moment_date_format) +
-                    ' ~ ' +
-                    picker.endDate.format(moment_date_format)
+                ' ~ ' +
+                picker.endDate.format(moment_date_format)
             );
         });
 

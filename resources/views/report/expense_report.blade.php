@@ -23,14 +23,25 @@
                 <div class="col-md-4">
                     <div class="form-group">
                         {!! Form::label('category_id', __('category.category').':') !!}
-                        {!! Form::select('category', $categories, null, ['placeholder' =>
+                        {!! Form::select('category', $categories, $category_select, ['placeholder' =>
                         __('report.all'), 'class' => 'form-control select2', 'style' => 'width:100%', 'id' => 'category_id']); !!}
                     </div>
                 </div>
                 <div class="col-md-4">
                     <div class="form-group">
+                    @php
+                        // Get the start and end dates of the current month in the desired format
+                        $startOfMonth = \Carbon\Carbon::now()->startOfMonth()->format('m/d/Y');
+                        $endOfMonth = \Carbon\Carbon::now()->endOfMonth()->format('m/d/Y');
+
+                        // Default value in case no query parameter is provided
+                        $defaultDateRange = "$startOfMonth ~ $endOfMonth";
+
+                        // Use the dateRange from the query parameter or fallback to the default
+                        $dateRangeValue = $date_range ?? $defaultDateRange;
+                    @endphp
                         {!! Form::label('trending_product_date_range', __('report.date_range') . ':') !!}
-                        {!! Form::text('date_range', null , ['placeholder' => __('lang_v1.select_a_date_range'), 'class' => 'form-control', 'id' => 'trending_product_date_range', 'readonly']); !!}
+                        {!! Form::text('date_range', $dateRangeValue , ['placeholder' => __('lang_v1.select_a_date_range'), 'class' => 'form-control', 'id' => 'trending_product_date_range', 'readonly']); !!}
                     </div>
                 </div>
                 <div class="col-sm-12">

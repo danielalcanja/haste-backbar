@@ -1036,14 +1036,17 @@ class ReportController extends Controller
         $filters = $request->only(['category', 'location_id']);
 
         $date_range = $request->input('date_range');
+        $category_select = $request->input('category');
 
         if (! empty($date_range)) {
             $date_range_array = explode('~', $date_range);
             $filters['start_date'] = $this->transactionUtil->uf_date(trim($date_range_array[0]));
             $filters['end_date'] = $this->transactionUtil->uf_date(trim($date_range_array[1]));
         } else {
-            $filters['start_date'] = \Carbon::now()->startOfMonth()->format('Y-m-d');
-            $filters['end_date'] = \Carbon::now()->endOfMonth()->format('Y-m-d');
+            // $filters['start_date'] = \Carbon::now()->startOfMonth()->format('Y-m-d');
+            // $filters['end_date'] = \Carbon::now()->endOfMonth()->format('Y-m-d');
+            $filters['start_date'] = \Carbon\Carbon::now()->startOfMonth()->format('Y-m-d');
+            $filters['end_date'] = \Carbon\Carbon::now()->endOfMonth()->format('Y-m-d');
         }
 
         $expenses = $this->transactionUtil->getExpenseReport($business_id, $filters);
@@ -1066,7 +1069,7 @@ class ReportController extends Controller
         $business_locations = BusinessLocation::forDropdown($business_id, true);
 
         return view('report.expense_report')
-                    ->with(compact('chart', 'categories', 'business_locations', 'expenses'));
+                    ->with(compact('chart', 'categories', 'business_locations', 'expenses','date_range','category_select'));
     }
 
     /**
