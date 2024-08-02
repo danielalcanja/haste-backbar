@@ -2922,7 +2922,7 @@ class TransactionUtil extends Util
     ) {
         $query = Transaction::leftjoin('expense_categories AS ec', 'transactions.expense_category_id', '=', 'ec.id')
                             ->where('transactions.business_id', $business_id)
-                            ->whereIn('type', ['expense', 'expense_refund']);
+                            ->whereIn('type', ['purchase','expense', 'expense_refund']);
         // ->where('payment_status', 'paid');
 
         if (isset($filters['only_recurring'])) {

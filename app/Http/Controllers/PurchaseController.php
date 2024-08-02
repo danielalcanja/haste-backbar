@@ -23,6 +23,7 @@ use Illuminate\Support\Facades\DB;
 use Spatie\Activitylog\Models\Activity;
 use Yajra\DataTables\Facades\DataTables;
 use App\Events\PurchaseCreatedOrModified;
+use App\ExpenseCategory;
 
 class PurchaseController extends Controller
 {
@@ -346,6 +347,11 @@ class PurchaseController extends Controller
             $transaction_data['final_total'] = $this->productUtil->num_uf($transaction_data['final_total'], $currency_details) * $exchange_rate;
 
             $transaction_data['business_id'] = $business_id;
+            $expense_category = ExpenseCategory::where('business_id', $business_id)->find('16');
+            if(!empty($expense_category))
+            {
+                $transaction_data['expense_category_id'] = $expense_category->id;
+            }
             $transaction_data['created_by'] = $user_id;
             $transaction_data['type'] = 'purchase';
             $transaction_data['payment_status'] = 'due';
@@ -676,6 +682,11 @@ class PurchaseController extends Controller
 
             $update_data['transaction_date'] = $this->productUtil->uf_date($update_data['transaction_date'], true);
 
+            $expense_category = ExpenseCategory::where('business_id', $business_id)->find('16');
+            if(!empty($expense_category))
+            {
+                $update_data['expense_category_id'] = $expense_category->id;
+            }
             //unformat input values
             $update_data['total_before_tax'] = $this->productUtil->num_uf($update_data['total_before_tax'], $currency_details) * $exchange_rate;
 
