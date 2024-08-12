@@ -533,9 +533,9 @@ class WebhookController extends Controller
 
     public function CreateOrUpdateOrder($blOrderData)
     {
-        echo "<pre>";
-        print_r($blOrderData);
-        echo "</pre>";
+        // echo "<pre>";
+        // print_r($blOrderData);
+        // echo "</pre>";
         $order_response = null;  // Initialize the order_response variable
         $business_location = BusinessLocation::where('bvlId', $blOrderData['locationId'])->first();
         
