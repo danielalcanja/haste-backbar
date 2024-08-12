@@ -67,4 +67,6 @@ return [
     'size' => 'Product Size',
     'import_boulevard_products' => 'Import Boulevard Products',
     'import'=> 'Import Products',
+    'import_boulevard_services' => 'Import Boulevard Services',
+    'import_services'=> 'Import Services',
 ];
