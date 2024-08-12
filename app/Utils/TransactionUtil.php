@@ -3388,6 +3388,7 @@ class TransactionUtil extends Util
                     $business_name = optional(Business::find($business['id']))->name;
                     $location_name = optional(BusinessLocation::find($business['location_id']))->name;
                     \Log::emergency($mismatch_error.' Business: '.$business_name.' Location: '.$location_name);
+                    \Log::channel('webhook')->info($mismatch_error.' Business: '.$business_name.' Location: '.$location_name);
                     throw new PurchaseSellMismatch($mismatch_error);
                 } else {
                     //Mapping with no purchase line
