@@ -756,6 +756,7 @@ class TransactionUtil extends Util
                         'card_type' => isset($payment['card_type']) ? $payment['card_type'] : null,
                         'card_holder_name' => isset($payment['card_holder_name']) ? $payment['card_holder_name'] : null,
                         'card_month' => isset($payment['card_month']) ? $payment['card_month'] : null,
+                        'card_year' => isset($payment['card_year']) ? $payment['card_year'] : null,
                         'card_security' => isset($payment['card_security']) ? $payment['card_security'] : null,
                         'cheque_number' => isset($payment['cheque_number']) ? $payment['cheque_number'] : null,
                         'bank_account_number' => isset($payment['bank_account_number']) ? $payment['bank_account_number'] : null,

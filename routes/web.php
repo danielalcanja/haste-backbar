@@ -60,6 +60,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\VariationTemplateController;
 use App\Http\Controllers\WarrantyController;
 use App\Http\Controllers\BoulevardImportDataController;
+//use App\Http\Controllers\WebhookController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -82,6 +83,7 @@ Route::middleware(['setData'])->group(function () {
     Route::get('/', function () {
         return redirect()->route('login');
     });
+    //Route::get('/blvdhook', [WebhookController::class, 'handle']);
     
     Auth::routes();
 
@@ -350,6 +352,8 @@ Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone', 
     //Import boulevard data
     Route::get('/import-boulevard-products', [BoulevardImportDataController::class, 'index']);
     Route::post('/import-boulevard-products/store', [BoulevardImportDataController::class, 'store']);
+    Route::get('/import-boulevard-services', [BoulevardImportDataController::class, 'indexServices']);
+    Route::post('/import-boulevard-services/importServices', [BoulevardImportDataController::class, 'importServices']);
 
     //Sales Commission Agent
     Route::resource('sales-commission-agents', SalesCommissionAgentController::class);

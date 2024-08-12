@@ -630,4 +630,420 @@ class BoulevardImportDataController extends Controller
                 'location_id' => $location_id, ]);
         }
     }
+
+    // Import Services as products 
+    public function indexServices()
+    {
+        if (! auth()->user()->can('product.create')) {
+            abort(403, 'Unauthorized action.');
+        }
+        
+        return view('import_products.index_services_boulevard');
+    }
+    public function importServices(Request $request)
+    {
+        if (! auth()->user()->can('product.create')) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        try {
+
+            //Set maximum php execution time
+            ini_set('max_execution_time', 0);
+            ini_set('memory_limit', -1);
+
+            $start_process = $request->input('start_process');
+            if ($start_process == "start") {
+                // Fetch the initial page
+                $response_from_func = $this->fetchServices();
+                if($response_from_func['success'] == 0)
+                {
+                    return redirect('import-boulevard-services')->with('notification', $response_from_func);
+                }
+                else
+                {
+                    $response = $response_from_func['msg'];
+                }
+                $products = $response['data']['services']['edges'];
+                $pageInfo = $response['data']['services']['pageInfo'];
+
+                while ($pageInfo['hasNextPage']) {
+                    $endCursor = $pageInfo['endCursor'];
+                    $response_from_func = $this->fetchServices($endCursor);
+                    if($response_from_func['success'] == 0)
+                    {
+                        return redirect('import-boulevard-services')->with('notification', $response_from_func);
+                    }
+                    else
+                    {
+                        $response = $response_from_func['msg'];
+                    }
+                    $products = array_merge($products, $response['data']['services']['edges']);
+                    $pageInfo = $response['data']['services']['pageInfo'];
+                }
+            
+                $business_id = $request->session()->get('user.business_id');
+                $user_id = $request->session()->get('user.id');
+                $default_profit_percent = $request->session()->get('business.default_profit_percent');
+                $business_locations = BusinessLocation::where('business_id', $business_id)->get();
+                $formated_data = [];
+
+                $is_valid = true;
+                $error_msg = '';
+
+                $total_rows = count($products);
+                
+                DB::beginTransaction();
+                // echo $total_rows."<br>";
+                // echo "<pre>";
+                // print_r($products);
+                // echo "</pre>";
+                // exit;
+
+                foreach ($products as $key => $value) {
+
+                    $row_no = $key + 1;
+                    $product_array = [];
+                    $product_array['business_id'] = $business_id;
+                    $product_array['created_by'] = $user_id;
+                    $product_array['bvpId'] = trim($value['node']['id']);
+                    $product_array['ptype'] = 'service';
+                    $product_array['duration'] = trim($value['node']['defaultDuration']);
+
+                    $product_name = trim($value['node']['name']);
+                    if (! empty($product_name)) {
+                        $product_array['name'] = $product_name;
+                    } else {
+                        // $is_valid = false;
+                        // $error_msg = "Product name is required in row no. $row_no";
+                        // break;
+                    }
+                    $product_array['product_description'] = isset($value['node']['description']) ? $value['node']['description'] : null;
+                    $product_array['barcode'] = isset($value['node']['barcode']) ? $value['node']['barcode'] : null;
+                    $product_array['color'] = isset($value['node']['color']) ? $value['node']['color'] : null;
+                    $product_array['size'] = isset($value['node']['size']) ? $value['node']['size'] : null;
+                    
+                    $product_array['not_for_selling'] = 0;
+                    $enable_stock = 1;
+                    $product_array['enable_stock'] = $enable_stock;
+                    $product_array['type'] = 'single';
+
+                    $unit_name = "ML / FL / OZ";
+                    $unit = Unit::where('business_id', $business_id)
+                                        ->where('actual_name', $unit_name)->first();
+                    if (! empty($unit)) {
+                        $product_array['unit_id'] = $unit->id;
+                    } else {
+                        // $is_valid = false;
+                        // $error_msg = "Unit with name not found. You can add unit from Products > Units";
+                        // break;
+                    }
+                    $barcode_type = 'UPCA';
+                    $product_array['barcode_type'] = $barcode_type;
+
+                    $tax_name = null;
+                    $product_array['tax'] = $tax_name;
+                    $tax_amount = 0;
+
+                    //Add Tax
+                    // $tax = TaxRate::where('business_id', $business_id)
+                    //                 ->where('name', "Product Tax")
+                    //                 ->first();
+                    // if (! empty($tax)) {
+                    //     $product_array['tax'] = $tax->id;
+                    //     $tax_amount = $tax->amount;
+                    // } else {
+                        // $product_array['tax'] = null;
+                        // $tax_amount = 0;
+                    //}
+
+                    $tax_type = 'exclusive';
+                    $product_array['tax_type'] = $tax_type;
+                    $product_array['alert_quantity'] = 5;
+                    //Add brand
+                    //Check if brand exists else create new
+                    // $brand_name = trim($value['node']['brandName']);
+                    // if (! empty($brand_name)) {
+                    //     $brand = Brands::firstOrCreate(
+                    //         ['business_id' => $business_id, 'name' => $brand_name],
+                    //         ['created_by' => $user_id]
+                    //     );
+                    //     $product_array['brand_id'] = $brand->id;
+                    // }
+                    $product_array['brand_id'] = null;
+                    //Add Category
+                    //Check if category exists else create new
+                    if (isset($value['node']['category']['name']) && ! empty(trim($value['node']['category']['name']))) {
+                        $category = Category::firstOrCreate(
+                            ['business_id' => $business_id, 'name' => trim($value['node']['category']['name']), 'category_type' => 'product','ctype' => 'service','bvCatId' => $value['node']['category']['id']],
+                            ['created_by' => $user_id, 'parent_id' => 0]
+                        );
+                        $product_array['category_id'] = $category->id;
+                    }
+                    else
+                    {
+                        $product_array['category_id'] = null;
+                    }
+                    $product_array['sku'] = isset($value['node']['sku']) && !empty($value['node']['sku']) ? trim($value['node']['sku']) : 'empty';
+
+                    $product_array['weight'] = '';
+
+                    if ($product_array['type'] == 'single') {
+                        //Calculate profit margin
+                        $profit_margin = '';
+                        if (empty($profit_margin)) {
+                            $profit_margin = $default_profit_percent;
+                        }
+                        $product_array['variation']['profit_percent'] = 0;
+
+                        //Calculate purchase price
+                        $dpp_inc_tax = 0;
+                        $dpp_exc_tax = trim($value['node']['defaultPrice']);
+                        if ($dpp_inc_tax == '' && $dpp_exc_tax == '') {
+                            // $is_valid = false;
+                            // $error_msg = "PURCHASE PRICE is required!!";
+                            // break;
+                            $dpp_inc_tax = 0;
+                            $dpp_exc_tax = 0;
+                        } else {
+                            if($tax_amount == 0)
+                            {
+                                $dpp_inc_tax = ($dpp_inc_tax != '') ? number_format($dpp_inc_tax / 100, 2, '.', '') : 0;
+                            }
+                            $dpp_exc_tax = ($dpp_exc_tax != '') ? number_format($dpp_exc_tax / 100, 2, '.', '') : 0;
+                        }
+                        //Calculate Selling price
+                        $selling_price = ! empty(trim($value['node']['defaultPrice'])) ? number_format(trim($value['node']['defaultPrice']) / 100, 2, '.', ''): 0;
+
+                        //Calculate product prices
+                        $product_prices = $this->calculateVariationPrices($dpp_exc_tax, $dpp_inc_tax, $selling_price, $tax_amount, $tax_type, $profit_margin);
+
+                        //Assign Values
+                        $product_array['variation']['dpp_inc_tax'] = $product_prices['dpp_inc_tax'];
+                        $product_array['variation']['dpp_exc_tax'] = $product_prices['dpp_exc_tax'];
+                        $product_array['variation']['dsp_inc_tax'] = $product_prices['dsp_inc_tax'];
+                        $product_array['variation']['dsp_exc_tax'] = $product_prices['dsp_exc_tax'];
+
+                        //Opening stock
+                        if ($enable_stock == 1) 
+                        {
+                            // if(isset($value['node']['quantities']['edges']) && !empty($value['node']['quantities']['edges']))
+                            // {
+                            //     foreach($value['node']['quantities']['edges'] as $key_qty=>$val_qty)
+                            //     {
+                            //         if(isset($val_qty['node']['location']['name']) && !empty($val_qty['node']['location']['name']))
+                            //         {
+                                        $product_array['opening_stock_details']['quantity'] = 100;
+                                        //$location_name = $val_qty['node']['location']['name'];
+                                        // $location = BusinessLocation::where('name', $location_name)
+                                        //                         ->where('business_id', $business_id)
+                                        //                         ->first();
+                                        // if (! empty($location)) {
+                                        //     $product_array['opening_stock_details']['location_id'] = $location->id;
+                                        // } else {
+                                            $location = BusinessLocation::where('business_id', $business_id)->first();
+                                            $product_array['opening_stock_details']['location_id'] = $location->id;
+                                        //}
+                                        $product_array['opening_stock_details']['expiry_date'] = null;
+                            //         }
+                            //     }
+                            // }
+                        }
+                    }
+                    $formated_data[] = $product_array;
+                }
+                
+                // if (! $is_valid) {
+                //     throw new \Exception($error_msg);
+                // }
+
+                // echo "<pre>";
+                // print_r($formated_data);
+                // echo "</pre>";
+                // exit;
+
+                // Adding Products to POS from Boulevard
+                if (! empty($formated_data)) {
+                    $imported_products = 0;
+                    foreach ($formated_data as $index => $product_data) {
+                        
+                        //check if product is exist or not
+                        $product = Product::where('business_id', $business_id)
+                                    ->where('name', $product_data['name'])
+                                    ->where('bvpId', $product_data['bvpId'])
+                                    ->first();
+
+                        if(empty($product))
+                        {
+                            $variation_data = $product_data['variation'];
+                            unset($product_data['variation']);
+
+                            $opening_stock = null;
+                            if (! empty($product_data['opening_stock_details'])) {
+                                $opening_stock = $product_data['opening_stock_details'];
+                            }
+                            if (isset($product_data['opening_stock_details'])) {
+                                unset($product_data['opening_stock_details']);
+                            }
+
+                            //Create new product
+                            $product = Product::create($product_data);
+                            // //If auto generate sku generate new sku
+                            // if ($product->sku == ' ') {
+                            //     $sku = $this->productUtil->generateProductSku($product->id);
+                            //     $product->sku = $sku;
+                            //     $product->save();
+                            // }
+
+                            //Create single product variation
+                            if ($product->type == 'single') {
+                                $this->productUtil->createSingleProductVariation(
+                                    $product,
+                                    $product->sku,
+                                    $variation_data['dpp_exc_tax'],
+                                    $variation_data['dpp_inc_tax'],
+                                    $variation_data['profit_percent'],
+                                    $variation_data['dsp_exc_tax'],
+                                    $variation_data['dsp_inc_tax']
+                                );
+                                if (! empty($opening_stock)) {
+                                    $this->addOpeningStock($opening_stock, $product, $business_id);
+                                }
+                            }
+                            $imported_products++;
+                        }
+                    }
+                }
+
+            }
+            $output = ['success' => 0,
+                'msg' => "Total Services Count from Boulevard Portal: " . count($formated_data) . " ||  Total " . $imported_products . " Products imported successfully!!",
+            ];
+
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::emergency('File:'.$e->getFile().'Line:'.$e->getLine().'Message:'.$e->getMessage());
+
+            $output = ['success' => 0,
+                'msg' => $e->getMessage(),
+            ];
+
+            return redirect('import-boulevard-services')->with('notification', $output);
+        }
+
+        return redirect('import-boulevard-services')->with('notification', $output);
+    }
+
+    private function fetchServices($endCursor = null) {
+        $api_token = $this->authHeader;
+        $api_base_url = $this->api_base_blvd_url;
+        $query = '
+        query($after: String) {
+            services(first: 100, after: $after) {
+                edges
+                {
+                    node{
+                        category{
+                            id
+                            name
+                        }
+                        categoryId
+                        defaultDuration
+                        defaultPrice
+                        description
+                        id
+                        name
+                        serviceOptionGroups{
+                            id
+                            name
+                            serviceOptions{
+                                id
+                                name
+                            }
+                        }
+                    }
+                }
+                pageInfo{
+                    endCursor
+                    hasNextPage
+                }
+            }
+        }';
+    
+        $variables = ['after' => $endCursor];
+    
+        $data = json_encode([
+            'query' => $query,
+            'variables' => $variables
+        ]);
+    
+        // Initialize cURL session
+        $ch = curl_init();
+    
+        // Set the cURL options
+        curl_setopt($ch, CURLOPT_URL, $api_base_url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Authorization: ' . $api_token,
+            'Content-Type: application/json',
+            'Accept: application/json',
+            // 'Content-Length: ' . strlen($data) // Try removing this line
+        ]);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+        curl_setopt($ch, CURLOPT_VERBOSE, true); // Enable verbose output for debugging
+    
+        // Execute the cURL request
+        $response = curl_exec($ch);
+    
+        // Check for cURL errors
+        if ($response === false) {
+            $error = curl_error($ch);
+            curl_close($ch);
+            die('Curl error: ' . $error);
+        }
+    
+        // Get the HTTP status code
+        $http_status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    
+        // Get the redirect URL if any
+        $redirect_url = curl_getinfo($ch, CURLINFO_REDIRECT_URL);
+    
+        // Close the cURL session
+        curl_close($ch);
+    
+        // Handle the response
+        if ($http_status == 200) {
+            // Decode the JSON response
+            $response_data = json_decode($response, true);
+    
+            // Check for errors in the GraphQL response
+            if (isset($response_data['errors'])) {
+                $error_msg_notify =  'GraphQL errors: ' . json_encode($response_data['errors'], JSON_PRETTY_PRINT);
+
+                $output = ['success' => 0,
+                                'msg' => $error_msg_notify,
+                            ];
+                return $output;
+            } else {
+                $output = ['success' => 1,
+                                'msg' => $response_data,
+                            ];
+                return $output;
+            }
+        } else {
+            $error_msg_notify = 'Failed to retrieve services: HTTP Status ' . $http_status . "    ||   ".'Response: ' . $response;
+            // if (!empty($redirect_url)) {
+            //     return 'Redirect URL: ' . $redirect_url . "\n";
+            // }
+            //return 'Response: ' . $response . "\n";
+
+            $output = ['success' => 0,
+                                'msg' => $error_msg_notify,
+                            ];
+            return $output;
+        }
+    }
 }
