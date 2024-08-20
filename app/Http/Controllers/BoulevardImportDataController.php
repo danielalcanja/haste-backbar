@@ -169,9 +169,9 @@ class BoulevardImportDataController extends Controller
                     $product_array['enable_stock'] = $enable_stock;
                     $product_array['type'] = 'single';
 
-                    $unit_name = "ML / FL / OZ";
+                    $unitId = 2;
                     $unit = Unit::where('business_id', $business_id)
-                                        ->where('actual_name', $unit_name)->first();
+                                        ->where('id', $unitId)->first();
                     if (! empty($unit)) {
                         $product_array['unit_id'] = $unit->id;
                     } else {
@@ -728,9 +728,9 @@ class BoulevardImportDataController extends Controller
                     $product_array['enable_stock'] = $enable_stock;
                     $product_array['type'] = 'single';
 
-                    $unit_name = "ML / FL / OZ";
+                    $unitId = 2;
                     $unit = Unit::where('business_id', $business_id)
-                                        ->where('actual_name', $unit_name)->first();
+                                        ->where('id', $unitId)->first();
                     if (! empty($unit)) {
                         $product_array['unit_id'] = $unit->id;
                     } else {
