@@ -1543,4 +1543,6 @@ return [
     'received_by' => 'Received by',
     'enter_details_below_to_check_repair_status' => 'Enter details below to check Repair Status',
     'search_by' => 'Search By',
+    'import_blvd_products' => 'Import Boulevard Products',
+    'import_blvd_services' => 'Import Boulevard Services',
 ];
