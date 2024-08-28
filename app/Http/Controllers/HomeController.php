@@ -271,6 +271,23 @@ class HomeController extends Controller
             //NET = TOTAL SALES - INVOICE DUE - EXPENSE
             $output['net'] = $output['total_sell'] - $output['invoice_due'] - $output['total_expense'];
 
+            $transaction_other_totals = $this->transactionUtil->getTransactionOtherTotal(
+                $business_id,
+                $start,
+                $end,
+                $location_id,
+                $created_by
+            );
+
+            $output['total_products_sell'] = $this->transactionUtil->getProductServiceSellTotals($business_id, $start, $end, $location_id, $created_by);
+            $output['total_services_sell'] = $this->transactionUtil->getProductServiceSellTotals($business_id, $start, $end, $location_id, $created_by,'service');
+            $output['total_sell_discount'] = $transaction_other_totals['total_sell_discount'];
+            $output['total_tax'] = $transaction_other_totals['total_tax'];
+            $output['tips'] = $transaction_other_totals['tips'];
+            $output['account_credits'] = $transaction_other_totals['account_credits'];
+            $output['products_units'] = $transaction_other_totals['products_units'];
+            $output['final_sell_total'] = $output['total_products_sell'] + $output['total_services_sell'] + $transaction_other_totals['total_tax'] + $transaction_other_totals['tips'] + $transaction_other_totals['account_credits'] + $transaction_other_totals['products_units'] - $transaction_other_totals['total_sell_discount'];
+            
             return $output;
         }
     }
@@ -630,5 +647,40 @@ class HomeController extends Controller
         $response = $this->moduleUtil->getLocationFromCoordinates($latlng_array[0], $latlng_array[1]);
 
         return ['address' => $response];
+    }
+
+    public function getPaymentTotals()
+    {
+        if (request()->ajax()) {
+            
+            $start = request()->start;
+            $end = request()->end;
+            $location_id = request()->location_id;
+            $business_id = request()->session()->get('user.business_id');
+            $payment_types = $this->transactionUtil->payment_types(null, true, $business_id);
+            // get user id parameter
+            $created_by = request()->user_id;
+            $transaction_payment_methods = $this->transactionUtil->getTransactionPaymentMethods(
+                $business_id,
+                $start,
+                $end,
+                $location_id,
+                $created_by
+            );
+
+            return Datatables::of($transaction_payment_methods)
+            ->editColumn('method', function ($row) use ($payment_types) {
+                $payment_method = '';
+                $payment_method = $payment_types[$row->method];
+                $html = ! empty($payment_method) ? '<span class="payment-method" data-orig-value="'.$payment_method.'" data-status-name="'.$payment_method.'">'.$payment_method.'</span>' : '';
+                return $html;
+            })
+            ->editColumn('sum_total_paid', function ($row) {
+                return '<span class="paid_amount" data-orig-value="'.$row->sum_total_paid.'" 
+                >'.$this->transactionUtil->num_f($row->sum_total_paid, true).'</span>';
+            })
+            ->rawColumns(['method', 'sum_total_paid'])
+            ->make(true);
+        }
     }
 }

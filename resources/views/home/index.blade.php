@@ -365,6 +365,109 @@
         <div class="tw-px-5 tw-py-6">
             <div class="tw-grid tw-grid-cols-1 tw-gap-4 sm:tw-gap-5 lg:tw-grid-cols-2">
                 @if (auth()->user()->can('sell.view') || auth()->user()->can('direct_sell.view'))
+                    <div class="tw-transition-all lg:tw-col-span-2 tw-duration-200 tw-bg-white tw-shadow-sm tw-rounded-xl tw-ring-1 hover:tw-shadow-md hover:tw--translate-y-0.5 tw-ring-gray-200">
+                        <div class="tw-p-4 sm:tw-p-5">
+                            <div class="tw-flex tw-items-center tw-gap-2.5">
+                                <div
+                                    class="tw-border-2 tw-flex tw-items-center tw-justify-center tw-rounded-full tw-w-10 tw-h-10">
+                                    <svg aria-hidden="true" class="tw-text-yellow-500 tw-size-5 tw-shrink-0"
+                                        xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-width="2"
+                                        stroke="currentColor" fill="none" stroke-linecap="round"
+                                        stroke-linejoin="round">
+                                        <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                                        <path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0"></path>
+                                        <path d="M12 8v4"></path>
+                                        <path d="M12 16h.01"></path>
+                                    </svg>
+                                </div>
+                                <div class="tw-flex tw-items-center tw-flex-1 tw-min-w-0 tw-gap-1">
+                                    <div class="tw-w-full sm:tw-w-1/2 md:tw-w-1/2">
+                                        <h3 class="tw-font-bold tw-text-base lg:tw-text-xl">
+                                            {{ __('lang_v1.sales_summary') }}
+                                        </h3>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="tw-flow-root tw-mt-5  tw-border-gray-200">
+                                <div class="tw--mx-4 tw--my-2 tw-overflow-x-auto sm:tw--mx-5">
+                                    <div class="tw-inline-block tw-min-w-full tw-py-2 tw-align-middle sm:tw-px-5">
+                                        <table class="table table-bordered table-striped ajax_view"
+                                            id="sales_summary_table">
+                                            <thead>
+                                                <tr>
+                                                    <th class="text-center">@lang('lang_v1.sales_category')</th>
+                                                    <th class="text-right">@lang('lang_v1.total')</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr role="row" class="odd">
+                                                    <td class="text-center">@lang('lang_v1.products')</td>
+                                                    <td class="text-right"><span class="display_currency total_products_sell" data-currency_symbol="true"></span></td>
+                                                </tr>
+                                                <tr role="row" class="even">
+                                                    <td class="text-center">@lang('lang_v1.services')</td>
+                                                    <td class="text-right"><span class="display_currency total_services_sell" data-currency_symbol="true"></span></td>
+                                                </tr>
+                                                <tr role="row" class="odd">
+                                                    <td class="text-center">@lang('lang_v1.tax')</td>
+                                                    <td class="text-right"><span data-is_quantity="true" class="display_currency total_tax" data-currency_symbol="false"></span></td>
+                                                </tr>
+                                                <tr role="row" class="even">
+                                                    <td class="text-center">@lang('lang_v1.tips')</td>
+                                                    <td class="text-right"><span data-is_quantity="true" class="display_currency tips" data-currency_symbol="false"></span></td>
+                                                </tr>
+                                                <tr role="row" class="odd">
+                                                    <td class="text-center">@lang('lang_v1.account_credits')</td>
+                                                    <td class="text-right"><span data-is_quantity="true" class="display_currency account_credits" data-currency_symbol="false"></span></td>
+                                                </tr>
+                                                <tr role="row" class="even">
+                                                    <td class="text-center">@lang('lang_v1.product_units')</td>
+                                                    <td class="text-right"><span data-is_quantity="true" class="display_currency products_units" data-currency_symbol="false"></span></td>
+                                                </tr>
+                                                <tr role="row" class="odd">
+                                                    <td class="text-center">@lang('lang_v1.total_discount')</td>
+                                                    <td class="text-right">(-)<span data-is_quantity="true" class="display_currency total_sell_discount" data-currency_symbol="false"></span></td>
+                                                </tr>
+                                            </tbody>
+                                            <tfoot>
+                                                <tr class="bg-gray font-17 footer-total text-right">
+                                                    <td class="tw-font-bold">@lang('lang_v1.total')</td>
+                                                    <td class="tw-font-bold"><span data-is_quantity="true" class="display_currency final_sell_total" data-currency_symbol="false"></span></td>
+                                                </tr>
+                                            </tfoot>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="tw-transition-all lg:tw-col-span-2 tw-duration-200 tw-bg-white tw-shadow-sm tw-rounded-xl tw-ring-1 hover:tw-shadow-md hover:tw--translate-y-0.5 tw-ring-gray-200">
+                        <div class="tw-p-4 sm:tw-p-5">
+                            <div class="tw-flow-root tw-mt-5  tw-border-gray-200">
+                                <div class="tw--mx-4 tw--my-2 tw-overflow-x-auto sm:tw--mx-5">
+                                    <div class="tw-inline-block tw-min-w-full tw-py-2 tw-align-middle sm:tw-px-5">
+                                        <table class="table table-bordered table-striped ajax_view"
+                                            id="sales_payment_summary_table">
+                                            <thead>
+                                                <tr>
+                                                    <th class="text-left">@lang('lang_v1.payment_method')</th>
+                                                    <th class="text-left">@lang('lang_v1.payment')</th>
+                                                </tr>
+                                            </thead>
+                                            <tfoot>
+                                                <tr class="bg-gray font-17 footer-total text-left">
+                                                    <td class="tw-font-bold">@lang('lang_v1.total')</td>
+                                                    <td class="tw-font-bold footer_total_payment"></td>
+                                                </tr>
+                                            </tfoot>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                @endif
+                @if (auth()->user()->can('sell.view') || auth()->user()->can('direct_sell.view'))
                     @if (!empty($all_locations))
                         <div
                             class="tw-transition-all lg:tw-col-span-2 xl:tw-col-span-2 tw-duration-200 tw-bg-white tw-shadow-sm tw-rounded-xl tw-ring-1 hover:tw-shadow-md hover:tw--translate-y-0.5 tw-ring-gray-200">

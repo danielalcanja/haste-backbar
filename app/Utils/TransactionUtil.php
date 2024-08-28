@@ -6394,4 +6394,206 @@ class TransactionUtil extends Util
 
         return $registers;
     }
+
+    public function getProductServiceSellTotals($business_id, $start_date = null, $end_date = null, $location_id = null, $created_by = null,$product_type = null ,$permitted_locations = null)
+    {
+        $query = TransactionSellLine::join(
+                        'transactions as t',
+                        'transaction_sell_lines.transaction_id',
+                        '=',
+                        't.id'
+                    )
+                        ->join(
+                            'variations as v',
+                            'transaction_sell_lines.variation_id',
+                            '=',
+                            'v.id'
+                        )
+                        ->join('product_variations as pv', 'v.product_variation_id', '=', 'pv.id')
+                        ->join('products as p', 'pv.product_id', '=', 'p.id')
+                        ->where('t.business_id', $business_id)
+                        ->where('t.type', 'sell')
+                        ->where('t.status', 'final')
+                        ->select(
+                            DB::raw('SUM((transaction_sell_lines.quantity - transaction_sell_lines.quantity_returned) * (transaction_sell_lines.unit_price_inc_tax - transaction_sell_lines.line_discount_amount)) as subtotal_sum'),
+                        )
+                        ->groupBy('p.id');
+
+        if($product_type == 'service')
+        {
+            $query->where('p.ptype','service'); // Filter out where p.ptype is NULL
+        }
+        else
+        {
+            $query->whereNull('p.ptype'); // Filter out where p.ptype is NULL
+        }
+        
+        //Check for permitted locations of a user
+        if(!empty($permitted_locations)) {
+            if ($permitted_locations != 'all') {
+                $query->whereIn('t.location_id', $permitted_locations);
+            }
+        }
+
+        if (! empty($start_date) && ! empty($end_date)) {
+            $query->whereDate('t.transaction_date', '>=', $start_date)
+                ->whereDate('t.transaction_date', '<=', $end_date);
+        }
+
+        if (empty($start_date) && ! empty($end_date)) {
+            $query->whereDate('t.transaction_date', '<=', $end_date);
+        }
+
+        //Filter by the location
+        if (! empty($location_id)) {
+            $query->where('t.location_id', $location_id);
+        }
+
+        if (! empty($created_by)) {
+            $query->where('t.created_by', $created_by);
+        }
+        
+        $total = DB::table(DB::raw("({$query->toSql()}) as subquery"))
+            ->mergeBindings($query->getQuery()) // Bind the parameters from the original query
+            ->select(DB::raw('SUM(subtotal_sum) as total_sum'))
+            ->value('total_sum');
+
+        return $total;
+    }
+
+    public function getTransactionOtherTotal(
+        $business_id,
+        $start_date = null,
+        $end_date = null,
+        $location_id = null,
+        $created_by = null,
+        $permitted_locations = null
+        ) {
+            $query = Transaction::where('transactions.business_id', $business_id)
+                                  ->where('transactions.type', 'sell')
+                                  ->where('transactions.status', 'final');
+
+            //Check for permitted locations of a user
+            if(!empty($permitted_locations)) {
+                if ($permitted_locations != 'all') {
+                    $query->whereIn('transactions.location_id', $permitted_locations);
+                }
+            }
+
+            if (! empty($start_date) && ! empty($end_date)) {
+                $query->whereDate('transactions.transaction_date', '>=', $start_date)
+                    ->whereDate('transactions.transaction_date', '<=', $end_date);
+            }
+
+            if (empty($start_date) && ! empty($end_date)) {
+                $query->whereDate('transactions.transaction_date', '<=', $end_date);
+            }
+
+            //Filter by the location
+            if (! empty($location_id)) {
+                $query->where('transactions.location_id', $location_id);
+            }
+
+            //Filter by created_by
+            if (! empty($created_by)) {
+                $query->where('transactions.created_by', $created_by);
+            }
+
+            $query->addSelect(
+                DB::raw("SUM(IF(transactions.type='sell' AND transactions.status='final', IF(discount_type = 'percentage', COALESCE(discount_amount, 0)*total_before_tax/100, COALESCE(discount_amount, 0)), 0)) as total_sell_discount"),
+                DB::raw("SUM(transactions.tax_amount) as total_tax"),
+                DB::raw("SUM(IF(additional_expense_key_1 = 'GratuityAmount', additional_expense_value_1, 0)) as tips"),
+                DB::raw("SUM(IF(additional_expense_key_3 = 'AccountCreditAmount', additional_expense_value_3, 0)) as account_credits"),
+                DB::raw("SUM(IF(additional_expense_key_4 = 'ProductCardAmount', additional_expense_value_4, 0)) as products_units")
+            );
+
+            $transaction_totals = $query->first();
+            
+            $output = [];
+            $output['total_sell_discount'] =
+                ! empty($transaction_totals->total_sell_discount) ?
+                $transaction_totals->total_sell_discount : 0;
+
+            $output['total_tax'] =
+                ! empty($transaction_totals->total_tax) ?
+                $transaction_totals->total_tax : 0;
+
+            $output['tips'] =
+                ! empty($transaction_totals->tips) ?
+                $transaction_totals->tips : 0;
+
+            $output['account_credits'] =
+                ! empty($transaction_totals->account_credits) ?
+                $transaction_totals->account_credits : 0;
+
+            $output['products_units'] =
+                ! empty($transaction_totals->products_units) ?
+                $transaction_totals->products_units : 0;
+
+        return $output;
+    }
+
+    public function getTransactionPaymentMethods(
+        $business_id,
+        $start_date = null,
+        $end_date = null,
+        $location_id = null,
+        $created_by = null,
+        $permitted_locations = null
+        ) {
+            $parent_payment_query_part = empty($location_id) ? 'AND transaction_payments.parent_id IS NULL' : '';
+            
+            $query = TransactionPayment::leftjoin('transactions as t', function ($join) use ($business_id) {
+                $join->on('transaction_payments.transaction_id', '=', 't.id')
+                    ->where('t.business_id', $business_id)
+                    ->whereIn('t.type', ['sell']);
+            })
+                ->where('transaction_payments.business_id', $business_id)
+                ->where(function ($q) use ($business_id, $parent_payment_query_part) {
+                    $q->whereRaw("(transaction_payments.transaction_id IS NOT NULL AND t.type IN ('sell') $parent_payment_query_part)")
+                        ->orWhereRaw("EXISTS(SELECT * FROM transaction_payments as tp JOIN transactions ON tp.transaction_id = transactions.id WHERE transactions.type IN ('sell') AND transactions.business_id = $business_id AND tp.parent_id=transaction_payments.id)");
+                })
+                ->select(
+                    'transaction_payments.method',
+                    'transaction_payments.amount',
+                )
+                ->groupBy('transaction_payments.id');
+
+            //Check for permitted locations of a user
+            if(!empty($permitted_locations)) {
+                if ($permitted_locations != 'all') {
+                    $query->whereIn('t.location_id', $permitted_locations);
+                }
+            }
+
+            if (! empty($start_date) && ! empty($end_date)) {
+                $query->whereDate('transaction_payments.paid_on', '>=', $start_date)
+                    ->whereDate('transaction_payments.paid_on', '<=', $end_date);
+            }
+
+            if (empty($start_date) && ! empty($end_date)) {
+                $query->whereDate('transaction_payments.paid_on', '<=', $end_date);
+            }
+
+            //Filter by the location
+            if (! empty($location_id)) {
+                $query->where('t.location_id', $location_id);
+            }
+
+            //Filter by created_by
+            if (! empty($created_by)) {
+                $query->where('transaction_payments.created_by', $created_by);
+            }
+
+            // Now, wrap this query and group by method
+            $totalsByMethod = DB::table(DB::raw("({$query->toSql()}) as subquery"))
+            ->mergeBindings($query->getQuery()) // Merges bindings from the original query
+            ->select('method', DB::raw('SUM(amount) as sum_total_paid'))
+            ->groupBy('method')
+            ->get();
+
+            // print_r($totalsByMethod);
+            // exit;
+        return $totalsByMethod;
+    }
 }

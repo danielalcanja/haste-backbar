@@ -224,6 +224,63 @@ function update_statistics(start, end) {
             
             $('#total_prp').attr('data-content', newContent);
 
+            $('.total_products_sell').html(__currency_trans_from_en(data.total_products_sell, true));
+            $('.total_services_sell').html(__currency_trans_from_en(data.total_services_sell, true));
+            $('.total_tax').html(__currency_trans_from_en(data.total_tax, true));
+            $('.tips').html(__currency_trans_from_en(data.tips, true));
+            $('.account_credits').html(__currency_trans_from_en(data.account_credits, true));
+            $('.products_units').html(__currency_trans_from_en(data.products_units, true));
+            $('.total_sell_discount').html(__currency_trans_from_en(data.total_sell_discount, true));
+            $('.final_sell_total').html(__currency_trans_from_en(data.final_sell_total, true));
+
+            if ($('#sales_summary_table').length) {
+                $('#sales_summary_table').DataTable().destroy(); // Destroy the old instance if it exists
+                sales_summary_table = $('#sales_summary_table').DataTable(); // Reinitialize DataTable
+            }
         },
     });
+    var sales_summary_table = $('#sales_summary_table').DataTable();
+    sales_summary_table.on('init.dt', function () {
+        // Target specific buttons and remove classes
+        $('.buttons-collection').removeClass('btn btn-default');
+        $('.buttons-csv').removeClass('btn btn-default');
+        $('.buttons-copy').removeClass('btn btn-default');
+        $('.buttons-excel').removeClass('btn btn-default');
+        $('.buttons-pdf').removeClass('btn btn-default');
+        $('.buttons-print').removeClass('btn btn-default');
+    });
+
+    if ($('#sales_payment_summary_table').length) {
+        $('#sales_payment_summary_table').DataTable().destroy();
+        sales_payment_summary_datatable = $('#sales_payment_summary_table').DataTable({
+            processing: true,
+            serverSide: false,
+            fixedHeader:false,
+            aaSorting: [[0, 'asc']],
+            "ajax": {
+                "url": '/home/get-payment-totals',
+                "data": data
+            },
+            // columnDefs: [ {
+            //     "targets": 4,
+            //     "orderable": false,
+            //     "searchable": false
+            // } ],
+            columns: [
+                { data: 'method', name: 'method'  },
+                { data: 'sum_total_paid', name: 'sum_total_paid'},
+            ],
+            fnDrawCallback: function(oSettings) {
+                __currency_convert_recursively($('#sales_payment_summary_table'));
+            },
+            "footerCallback": function ( row, data, start, end, display ) {
+                var footer_total_payment = 0;
+                for (var r in data){
+                    footer_total_payment += $(data[r].sum_total_paid).data('orig-value') ? 
+                    parseFloat($(data[r].sum_total_paid).data('orig-value')) : 0;
+                }
+                $('.footer_total_payment').html(__currency_trans_from_en(footer_total_payment, true));
+            },            
+        });
+    }
 }

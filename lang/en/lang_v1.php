@@ -1545,4 +1545,13 @@ return [
     'search_by' => 'Search By',
     'import_blvd_products' => 'Import Boulevard Products',
     'import_blvd_services' => 'Import Boulevard Services',
+    'sales_summary' => 'SALES SUMMARY',
+    'sales_category' => 'Sales Category',
+    'total' => 'Total',
+    'products' => 'Products',
+    'services' => 'Services',
+    'tax' => 'Tax',
+    'tips' => 'Tips',
+    'account_credits' => 'Account Credits',
+    'product_units' => 'Products Units',
 ];
