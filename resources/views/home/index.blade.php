@@ -424,6 +424,10 @@
                                                     <td class="text-center">@lang('lang_v1.product_units')</td>
                                                     <td class="text-right"><span data-is_quantity="true" class="display_currency products_units" data-currency_symbol="false"></span></td>
                                                 </tr>
+                                                <tr role="row" class="even">
+                                                    <td class="text-center">@lang('lang_v1.gift_cards')</td>
+                                                    <td class="text-right"><span data-is_quantity="true" class="display_currency gift_cards" data-currency_symbol="false"></span></td>
+                                                </tr>
                                                 <tr role="row" class="odd">
                                                     <td class="text-center">@lang('lang_v1.total_discount')</td>
                                                     <td class="text-right">(-)<span data-is_quantity="true" class="display_currency total_sell_discount" data-currency_symbol="false"></span></td>

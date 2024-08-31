@@ -724,6 +724,14 @@
 								{!! Form::text('additional_expense_value_4', 0, ['class' => 'form-control input_number', 'id' => 'additional_expense_value_4']); !!}
 							</td>
 						</tr>
+						<tr>
+							<td>
+								{!! Form::text('additional_expense_key_5', null, ['class' => 'form-control', 'id' => 'additional_expense_key_5']); !!}
+							</td>
+							<td>
+								{!! Form::text('additional_expense_value_5', 0, ['class' => 'form-control input_number', 'id' => 'additional_expense_value_5']); !!}
+							</td>
+						</tr>
 					</tbody>
 				</table>
 			</div>

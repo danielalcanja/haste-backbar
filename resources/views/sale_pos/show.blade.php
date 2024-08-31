@@ -167,6 +167,12 @@
           {{$sell->service_custom_field_6}}
         @endif
       @endif
+      @if(!empty($commission_agetns_from_blvd))
+        <br><strong>{{__('lang_v1.commission_agent')}} : </strong>
+        <span style="display: inline-block;vertical-align: top;">
+          @php echo $commission_agetns_from_blvd; @endphp
+        </span>
+      @endif
       </div>
       @if(!empty($export_custom_fields))
           <div class="col-sm-3">
@@ -346,6 +352,13 @@
                 <th>{{ $sell->additional_expense_key_4 }}:</th>
                 <td><b>(+)</b></td>
                 <td><span class="display_currency pull-right" >{{ $sell->additional_expense_value_4 }}</span></td>
+              </tr>
+            @endif
+            @if( !empty( $sell->additional_expense_value_5 ) && !empty( $sell->additional_expense_key_5 ))
+              <tr>
+                <th>{{ $sell->additional_expense_key_5 }}:</th>
+                <td><b>(+)</b></td>
+                <td><span class="display_currency pull-right" >{{ $sell->additional_expense_value_5 }}</span></td>
               </tr>
             @endif
             <tr>

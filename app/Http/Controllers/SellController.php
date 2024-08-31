@@ -807,7 +807,7 @@ class SellController extends Controller
                     ->where('id', $id)
                     ->with(['contact', 'delivery_person_user', 'sell_lines' => function ($q) {
                         $q->whereNull('parent_sell_line_id');
-                    }, 'sell_lines.product', 'sell_lines.product.unit', 'sell_lines.product.second_unit', 'sell_lines.variations', 'sell_lines.variations.product_variation', 'payment_lines', 'sell_lines.modifiers', 'sell_lines.lot_details', 'tax', 'sell_lines.sub_unit', 'table', 'service_staff', 'sell_lines.service_staff', 'types_of_service', 'sell_lines.warranties', 'media']);
+                    }, 'sell_lines.product', 'sell_lines.product.unit', 'sell_lines.product.second_unit', 'sell_lines.variations', 'sell_lines.variations.product_variation', 'payment_lines', 'sell_lines.modifiers', 'sell_lines.lot_details', 'tax', 'sell_lines.sub_unit', 'table', 'service_staff', 'sell_lines.service_staff', 'types_of_service', 'sell_lines.warranties', 'media','cmsn_agents_grouped_with_user']);
 
         if (! auth()->user()->can('sell.view') && ! auth()->user()->can('direct_sell.access') && auth()->user()->can('view_own_sell_only')) {
             $query->where('transactions.created_by', request()->session()->get('user.id'));
@@ -862,6 +862,19 @@ class SellController extends Controller
         $status_color_in_activity = Transaction::sales_order_statuses();
         $sales_orders = $sell->salesOrders();
 
+        $commission_agetns_from_blvd = "";
+        if(isset($sell->cmsn_agents_grouped_with_user) && !empty($sell->cmsn_agents_grouped_with_user))
+        {
+            foreach ($sell->cmsn_agents_grouped_with_user as $cmsn_agent) {
+                $user = $cmsn_agent->user; // Access the related User model
+                $first_name = $user->first_name; // Assuming the User model has a first_name field
+                $last_name = $user->last_name; // Assuming the User model has a last_name field
+
+                // You can now use $first_name and $last_name as needed
+                $commission_agetns_from_blvd = $commission_agetns_from_blvd . $first_name ." ".$last_name."<br>";
+            }
+        }
+
         return view('sale_pos.show')
             ->with(compact(
                 'taxes',
@@ -876,7 +889,8 @@ class SellController extends Controller
                 'statuses',
                 'status_color_in_activity',
                 'sales_orders',
-                'line_taxes'
+                'line_taxes',
+                'commission_agetns_from_blvd'
             ));
     }
 
@@ -912,7 +926,7 @@ class SellController extends Controller
         $taxes = TaxRate::forBusinessDropdown($business_id, true, true);
 
         $transaction = Transaction::where('business_id', $business_id)
-                            ->with(['price_group', 'types_of_service', 'media', 'media.uploaded_by_user'])
+                            ->with(['price_group', 'types_of_service', 'media', 'media.uploaded_by_user','cmsn_agents_grouped_with_user'])
                             ->whereIn('type', ['sell', 'sales_order'])
                             ->findorfail($id);
 
@@ -1179,8 +1193,20 @@ class SellController extends Controller
         //Added check because $users is of no use if enable_contact_assign if false
         $users = config('constants.enable_contact_assign') ? User::forDropdown($business_id, false, false, false, true) : [];
 
+        $commission_agetns_from_blvd = "";
+        if(isset($transaction->cmsn_agents_grouped_with_user) && !empty($transaction->cmsn_agents_grouped_with_user))
+        {
+            foreach ($transaction->cmsn_agents_grouped_with_user as $cmsn_agent) {
+                $user = $cmsn_agent->user; // Access the related User model
+                $first_name = $user->first_name; // Assuming the User model has a first_name field
+                $last_name = $user->last_name; // Assuming the User model has a last_name field
+
+                // You can now use $first_name and $last_name as needed
+                $commission_agetns_from_blvd = $commission_agetns_from_blvd . $first_name." ".$last_name."<br>";
+            }
+        }
         return view('sell.edit')
-            ->with(compact('business_details', 'taxes', 'sell_details', 'transaction', 'commission_agent', 'types', 'customer_groups', 'pos_settings', 'waiters', 'invoice_schemes', 'default_invoice_schemes', 'redeem_details', 'edit_discount', 'edit_price', 'shipping_statuses', 'warranties', 'statuses', 'sales_orders', 'payment_types', 'accounts', 'payment_lines', 'change_return', 'is_order_request_enabled', 'customer_due', 'users'));
+            ->with(compact('business_details', 'taxes', 'sell_details', 'transaction', 'commission_agent', 'types', 'customer_groups', 'pos_settings', 'waiters', 'invoice_schemes', 'default_invoice_schemes', 'redeem_details', 'edit_discount', 'edit_price', 'shipping_statuses', 'warranties', 'statuses', 'sales_orders', 'payment_types', 'accounts', 'payment_lines', 'change_return', 'is_order_request_enabled', 'customer_due', 'users','commission_agetns_from_blvd'));
     }
 
     /**

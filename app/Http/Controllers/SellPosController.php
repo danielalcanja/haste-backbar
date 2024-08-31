@@ -464,6 +464,11 @@ class SellPosController extends Controller
                     $input['additional_expense_value_4'] = $request->input('additional_expense_value_4');
                 }
 
+                if ($request->input('additional_expense_value_5') != '') {
+                    $input['additional_expense_key_5'] = $request->input('additional_expense_key_5');
+                    $input['additional_expense_value_5'] = $request->input('additional_expense_value_5');
+                }
+
                 $input['selling_price_group_id'] = $price_group_id;
 
                 if ($this->transactionUtil->isModuleEnabled('tables')) {
@@ -1260,6 +1265,12 @@ class SellPosController extends Controller
                     $input['additional_expense_key_4'] = $request->input('additional_expense_key_4');
                     $input['additional_expense_value_4'] = $request->input('additional_expense_value_4');
                 }
+
+                if ($request->input('additional_expense_value_5') != '') {
+                    $input['additional_expense_key_5'] = $request->input('additional_expense_key_5');
+                    $input['additional_expense_value_5'] = $request->input('additional_expense_value_5');
+                }
+
                 $only_payment = !$is_direct_sale && !auth()->user()->can('sell.update') && auth()->user()->can('edit_pos_payment');
 
                 //if edit pos not allowed and only edit payment allowed

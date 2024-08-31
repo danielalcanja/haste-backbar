@@ -303,6 +303,16 @@
 		        		data-transaction_id="{{$transaction->id}}">
 		        	</span>
 		        @endif
+				@if(!empty($commission_agetns_from_blvd))
+				<div class="col-sm-4">
+					<div class="form-group">
+					<b>{{__('lang_v1.commission_agent')}} : </b>
+						<span style="display: inline-block;vertical-align: top;">
+							@php echo $commission_agetns_from_blvd; @endphp
+					 	</span>
+					</div>
+				</div>
+				@endif
 			@endcomponent
 			
 			@component('components.widget', ['class' => 'box-solid'])
@@ -675,6 +685,14 @@
 							</td>
 							<td>
 								{!! Form::text('additional_expense_value_4', @num_format($transaction->additional_expense_value_4), ['class' => 'form-control input_number', 'id' => 'additional_expense_value_4']); !!}
+							</td>
+						</tr>
+						<tr>
+							<td>
+								{!! Form::text('additional_expense_key_5', $transaction->additional_expense_key_5, ['class' => 'form-control', 'id' => 'additional_expense_key_5']); !!}
+							</td>
+							<td>
+								{!! Form::text('additional_expense_value_5', @num_format($transaction->additional_expense_value_5), ['class' => 'form-control input_number', 'id' => 'additional_expense_value_5']); !!}
 							</td>
 						</tr>
 					</tbody>

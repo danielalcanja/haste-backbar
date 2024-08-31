@@ -144,6 +144,12 @@
 					<br/>
 					<strong>{{ $receipt_details->commission_agent_label }}</strong> {{ $receipt_details->commission_agent }}
 				@endif
+				@if(isset($receipt_details->commission_agetns_from_blvd) && !empty($receipt_details->commission_agetns_from_blvd))
+					@if(!empty($receipt_details->commission_agent_blvd_label))
+						<br/>
+						<strong>{{ $receipt_details->commission_agent_blvd_label }}</strong> <br>@php echo $receipt_details->commission_agetns_from_blvd; @endphp
+					@endif
+				@endif
 				@if(!empty($receipt_details->customer_rp_label))
 					<br/>
 					<strong>{{ $receipt_details->customer_rp_label }}</strong> {{ $receipt_details->customer_total_rp }}

@@ -1851,6 +1851,9 @@ function calculate_billing_details(price_total) {
     if ($('input#additional_expense_value_4').length > 0) {
         additional_expense += __read_number($('input#additional_expense_value_4'))
     }
+    if ($('input#additional_expense_value_5').length > 0) {
+        additional_expense += __read_number($('input#additional_expense_value_5'))
+    }
 
     //Add packaging charge
     var packing_charge = 0;
@@ -2529,7 +2532,7 @@ $(document).on('change', '#types_of_service_id', function(){
 });
 
 $(document).on('change', 'input#packing_charge, #additional_expense_value_1, #additional_expense_value_2, \
-        #additional_expense_value_3, #additional_expense_value_4', function() {
+        #additional_expense_value_3, #additional_expense_value_4,#additional_expense_value_5', function() {
     pos_total_row();
 });
 

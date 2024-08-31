@@ -230,6 +230,7 @@ function update_statistics(start, end) {
             $('.tips').html(__currency_trans_from_en(data.tips, true));
             $('.account_credits').html(__currency_trans_from_en(data.account_credits, true));
             $('.products_units').html(__currency_trans_from_en(data.products_units, true));
+            $('.gift_cards').html(__currency_trans_from_en(data.gift_cards, true));
             $('.total_sell_discount').html(__currency_trans_from_en(data.total_sell_discount, true));
             $('.final_sell_total').html(__currency_trans_from_en(data.final_sell_total, true));
 

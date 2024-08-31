@@ -286,7 +286,8 @@ class HomeController extends Controller
             $output['tips'] = $transaction_other_totals['tips'];
             $output['account_credits'] = $transaction_other_totals['account_credits'];
             $output['products_units'] = $transaction_other_totals['products_units'];
-            $output['final_sell_total'] = $output['total_products_sell'] + $output['total_services_sell'] + $transaction_other_totals['total_tax'] + $transaction_other_totals['tips'] + $transaction_other_totals['account_credits'] + $transaction_other_totals['products_units'] - $transaction_other_totals['total_sell_discount'];
+            $output['gift_cards'] = $transaction_other_totals['gift_cards'];
+            $output['final_sell_total'] = $output['total_products_sell'] + $output['total_services_sell'] + $transaction_other_totals['total_tax'] + $transaction_other_totals['tips'] + $transaction_other_totals['account_credits'] + $transaction_other_totals['products_units'] + $transaction_other_totals['gift_cards'] - $transaction_other_totals['total_sell_discount'];
             
             return $output;
         }
