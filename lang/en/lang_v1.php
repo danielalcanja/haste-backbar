@@ -15,7 +15,7 @@ return [
     'commission_agent_deleted_success' => 'Commission agent deleted successfully',
     'contact_no' => 'Contact No.',
     'commission_agent' => 'Commission Agent',
-    'cmmsn_percent' => 'Sales Commission Percentage (%)',
+    'cmmsn_percent' => 'Services Commission Percentage (%)',
     'sales_added' => 'Sales Added',
     'sales_with_commission' => 'Sales With Commission',
     // 'total_sale_with_commission' => 'Total Sale With Commission',
@@ -1554,4 +1554,6 @@ return [
     'tips' => 'Tips',
     'account_credits' => 'Account Credits',
     'product_units' => 'Products Units',
+    'gift_cards' => 'Gift cards',
+    'product_cmmsn_percent' => 'Products Commission Percentage (%)',
 ];

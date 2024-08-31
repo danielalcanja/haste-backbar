@@ -161,6 +161,13 @@
                     {!! Form::text('cmmsn_percent', !empty($user->cmmsn_percent) ? @num_format($user->cmmsn_percent) : 0, ['class' => 'form-control input_number', 'placeholder' => __( 'lang_v1.cmmsn_percent' )]); !!}
                 </div>
             </div>
+            
+            <div class="col-md-4">
+                <div class="form-group">
+                  {!! Form::label('product_cmmsn_percent', __( 'lang_v1.product_cmmsn_percent' ) . ':') !!}
+                    {!! Form::text('product_cmmsn_percent', !empty($user->product_cmmsn_percent) ? @num_format($user->product_cmmsn_percent) : 0, ['class' => 'form-control input_number', 'placeholder' => __( 'lang_v1.product_cmmsn_percent' )]); !!}
+                </div>
+            </div>
 
             <div class="col-md-4">
                 <div class="form-group">
