@@ -138,10 +138,15 @@ class TransactionUtil extends Util
             'additional_expense_value_2' => isset($input['additional_expense_value_2']) ? $uf_data ? $this->num_uf($input['additional_expense_value_2']) : $input['additional_expense_value_2'] : 0,
             'additional_expense_value_3' => isset($input['additional_expense_value_3']) ? $uf_data ? $this->num_uf($input['additional_expense_value_3']) : $input['additional_expense_value_3'] : 0,
             'additional_expense_value_4' => isset($input['additional_expense_value_4']) ? $uf_data ? $this->num_uf($input['additional_expense_value_4']) : $input['additional_expense_value_4'] : 0,
+            'additional_expense_value_5' => isset($input['additional_expense_value_5']) ? $uf_data ? $this->num_uf($input['additional_expense_value_5']) : $input['additional_expense_value_5'] : 0,
             'additional_expense_key_1' => ! empty($input['additional_expense_key_1']) ? $input['additional_expense_key_1'] : null,
             'additional_expense_key_2' => ! empty($input['additional_expense_key_2']) ? $input['additional_expense_key_2'] : null,
             'additional_expense_key_3' => ! empty($input['additional_expense_key_3']) ? $input['additional_expense_key_3'] : null,
             'additional_expense_key_4' => ! empty($input['additional_expense_key_4']) ? $input['additional_expense_key_4'] : null,
+            'additional_expense_key_5' => (isset($input['additional_expense_key_5']) && ! empty($input['additional_expense_key_5'])) ? $input['additional_expense_key_5'] : null,
+            'ac_discount_amount' => isset($input['ac_discount_amount']) ? $uf_data ? $this->num_uf($input['ac_discount_amount']) : $input['ac_discount_amount'] : 0,
+            'pc_discount_amount' => isset($input['pc_discount_amount']) ? $uf_data ? $this->num_uf($input['pc_discount_amount']) : $input['pc_discount_amount'] : 0,
+            'gc_discount_amount' => isset($input['gc_discount_amount']) ? $uf_data ? $this->num_uf($input['gc_discount_amount']) : $input['gc_discount_amount'] : 0,
             'is_kitchen_order' => ! empty($input['is_kitchen_order']) ? 1 : 0,
 
         ]);
@@ -256,10 +261,12 @@ class TransactionUtil extends Util
             'additional_expense_value_2' => isset($input['additional_expense_value_2']) ? $uf_data ? $this->num_uf($input['additional_expense_value_2']) : $input['additional_expense_value_2'] : 0,
             'additional_expense_value_3' => isset($input['additional_expense_value_3']) ? $uf_data ? $this->num_uf($input['additional_expense_value_3']) : $input['additional_expense_value_3'] : 0,
             'additional_expense_value_4' => isset($input['additional_expense_value_4']) ? $uf_data ? $this->num_uf($input['additional_expense_value_4']) : $input['additional_expense_value_4'] : 0,
+            'additional_expense_value_5' => isset($input['additional_expense_value_5']) ? $uf_data ? $this->num_uf($input['additional_expense_value_5']) : $input['additional_expense_value_5'] : 0,
             'additional_expense_key_1' => ! empty($input['additional_expense_key_1']) ? $input['additional_expense_key_1'] : null,
             'additional_expense_key_2' => ! empty($input['additional_expense_key_2']) ? $input['additional_expense_key_2'] : null,
             'additional_expense_key_3' => ! empty($input['additional_expense_key_3']) ? $input['additional_expense_key_3'] : null,
             'additional_expense_key_4' => ! empty($input['additional_expense_key_4']) ? $input['additional_expense_key_4'] : null,
+            'additional_expense_key_5' => (isset($input['additional_expense_key_5']) && ! empty($input['additional_expense_key_5'])) ? $input['additional_expense_key_5'] : null,
             'is_kitchen_order' => ! empty($input['is_kitchen_order']) ? 1 : 0,
         ];
 
@@ -374,6 +381,7 @@ class TransactionUtil extends Util
                     'unit_price' => $unit_price,
                     'line_discount_type' => ! empty($product['line_discount_type']) ? $product['line_discount_type'] : null,
                     'line_discount_amount' => $line_discount_amount,
+                    'line_discount_amount_blvd' => isset($product['line_discount_amount_blvd']) ? $uf_data ? $this->num_uf($product['line_discount_amount_blvd']) : $product['line_discount_amount_blvd'] : 0,
                     'item_tax' => $uf_item_tax / $multiplier,
                     'tax_id' => $product['tax_id'],
                     'unit_price_inc_tax' => $uf_unit_price_inc_tax / $multiplier,
@@ -384,6 +392,8 @@ class TransactionUtil extends Util
                     'res_line_order_status' => ! empty($product['res_service_staff_id']) ? 'received' : null,
                     'so_line_id' => ! empty($product['so_line_id']) ? $product['so_line_id'] : null,
                     'secondary_unit_quantity' => ! empty($product['secondary_unit_quantity']) ? $this->num_uf($product['secondary_unit_quantity']) : 0,
+                    'appointment_service_id' => isset($product['appointment_service_id']) ? $product['appointment_service_id'] : null,
+                    'product_seller_id' => isset($product['product_seller_id']) ? $product['product_seller_id'] : null,
                 ];
 
                 foreach ($extra_line_parameters as $key => $value) {
@@ -1215,6 +1225,23 @@ class TransactionUtil extends Util
             $output['commission_agent'] = ! empty($transaction->sale_commission_agent->user_full_name) ? $transaction->sale_commission_agent->user_full_name : '';
         }
 
+        //commission agent info from blvd
+        $output['commission_agetns_from_blvd'] = "";
+        $commission_agetns_from_blvd = "";
+        if(isset($transaction->cmsn_agents_grouped_with_user) && !empty($transaction->cmsn_agents_grouped_with_user))
+        {
+            $output['commission_agent_blvd_label'] = __('lang_v1.commission_agent');
+            foreach ($transaction->cmsn_agents_grouped_with_user as $cmsn_agent) {
+                $user_blvd = $cmsn_agent->user; // Access the related User model
+                $first_name_blvd = $user_blvd->first_name; // Assuming the User model has a first_name field
+                $last_name_blvd = $user_blvd->last_name; // Assuming the User model has a last_name field
+
+                // You can now use $first_name and $last_name as needed
+                $commission_agetns_from_blvd = $commission_agetns_from_blvd . $first_name_blvd." ".$last_name_blvd."<br>";
+            }
+            $output['commission_agetns_from_blvd'] = $commission_agetns_from_blvd;
+        }
+
         //Invoice info
         $output['invoice_no'] = $transaction->invoice_no;
         $output['invoice_no_prefix'] = $il->invoice_no_prefix;
@@ -1569,6 +1596,9 @@ class TransactionUtil extends Util
         }
         if (! empty($transaction->additional_expense_value_4) && ! empty($transaction->additional_expense_key_4)) {
             $output['additional_expenses'][$transaction->additional_expense_key_4] = $this->num_f($transaction->additional_expense_value_4, $show_currency, $business_details);
+        }
+        if (! empty($transaction->additional_expense_value_5) && ! empty($transaction->additional_expense_key_5)) {
+            $output['additional_expenses'][$transaction->additional_expense_key_5] = $this->num_f($transaction->additional_expense_value_5, $show_currency, $business_details);
         }
 
         //Check for barcode
@@ -6504,7 +6534,8 @@ class TransactionUtil extends Util
                 DB::raw("SUM(transactions.tax_amount) as total_tax"),
                 DB::raw("SUM(IF(additional_expense_key_1 = 'GratuityAmount', additional_expense_value_1, 0)) as tips"),
                 DB::raw("SUM(IF(additional_expense_key_3 = 'AccountCreditAmount', additional_expense_value_3, 0)) as account_credits"),
-                DB::raw("SUM(IF(additional_expense_key_4 = 'ProductCardAmount', additional_expense_value_4, 0)) as products_units")
+                DB::raw("SUM(IF(additional_expense_key_4 = 'ProductCardAmount', additional_expense_value_4, 0)) as products_units"),
+                DB::raw("SUM(IF(additional_expense_key_5 = 'GiftCardAmount', additional_expense_value_5, 0)) as gift_cards")
             );
 
             $transaction_totals = $query->first();
@@ -6529,6 +6560,10 @@ class TransactionUtil extends Util
             $output['products_units'] =
                 ! empty($transaction_totals->products_units) ?
                 $transaction_totals->products_units : 0;
+            
+            $output['gift_cards'] =
+                ! empty($transaction_totals->gift_cards) ?
+                $transaction_totals->gift_cards : 0;
 
         return $output;
     }

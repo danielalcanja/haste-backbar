@@ -406,6 +406,16 @@ class Transaction extends Model
 
         return $sales_orders;
     }
+    
+    public function cmsn_agents()
+    {
+        return $this->hasMany(\App\CmsnAgent::class);
+    }
 
-   
+    public function cmsn_agents_grouped_with_user()
+    {
+        return $this->hasMany(\App\CmsnAgent::class)
+                ->with('user') // Eager load the user details
+                ->groupBy('user_id');
+    }
 }

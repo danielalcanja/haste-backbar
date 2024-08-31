@@ -35,6 +35,7 @@ use Yajra\DataTables\Facades\DataTables;
 use App\Events\ProductsCreatedOrModified;
 use App\Utils\BusinessUtil;
 use App\Utils\TransactionUtil;
+use App\CmsnAgent;
 
 
 class WebhookController extends Controller
@@ -383,6 +384,14 @@ class WebhookController extends Controller
                                 initialDiscountAmount
                                 initialPrice
                                 initialSubtotal
+                                seller {
+                                    id
+                                    name
+                                    email
+                                    mobilePhone
+                                    firstName
+                                    lastName
+                                }
                         }
                         ... on OrderServiceLine {
                                 id
@@ -395,6 +404,8 @@ class WebhookController extends Controller
                                 initialDiscountAmount
                                 initialPrice
                                 initialSubtotal
+                                initialStaffId
+                                unitListPrice
                         }
                     }
                 }
@@ -678,6 +689,63 @@ class WebhookController extends Controller
                 }
             }
 
+            $appointments = $this->getAppointments($order['id'],$order['closedAt'],$order['locationId']);
+            if(!empty($appointments) && is_array($appointments))
+            {
+                if(isset($transaction->sell_lines) && !empty($transaction->sell_lines))
+                {
+                    foreach($transaction->sell_lines as $transaction_sell_line)
+                    {
+                        if(isset($transaction_sell_line->appointment_service_id) && !empty($transaction_sell_line->appointment_service_id) && empty($transaction_sell_line->product_seller_id))
+                        {
+                            if(!empty($appointments['appointmentServices']))
+                            {
+                                foreach($appointments['appointmentServices'] as $appointmentService)
+                                {
+                                    if($appointmentService['id'] == $transaction_sell_line->appointment_service_id)
+                                    {
+                                        if(isset($appointmentService['staff']['email']) && !empty($appointmentService['staff']['email']))
+                                        {
+                                            $staff = User::where('email',$appointmentService['staff']['email'])->first();
+                                            if(!empty($staff))
+                                            {
+                                                if(isset($staff->cmmsn_percent) && $staff->cmmsn_percent > 0)
+                                                {
+                                                    CmsnAgent::create([
+                                                        'transaction_id' => $transaction->id,
+                                                        'transaction_sell_line_id' => $transaction_sell_line->id,
+                                                        'discount_amount' => $transaction_sell_line->line_discount_amount_blvd,
+                                                        'user_id' => $staff->id,
+                                                        'cmmsn_percent' => $staff->cmmsn_percent,
+                                                        'cmmsn_type' => 'service',
+                                                    ]);
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        } else if(isset($transaction_sell_line->product_seller_id) && !empty($transaction_sell_line->product_seller_id) && empty($transaction_sell_line->appointment_service_id))
+                        {
+                            $staffSeller = User::where('id',$transaction_sell_line->product_seller_id)->first();
+                            if(!empty($staffSeller))
+                            {
+                                if(isset($staffSeller->product_cmmsn_percent) && $staffSeller->product_cmmsn_percent > 0)
+                                {
+                                    CmsnAgent::create([
+                                        'transaction_id' => $transaction->id,
+                                        'transaction_sell_line_id' => $transaction_sell_line->id,
+                                        'discount_amount' => $transaction_sell_line->line_discount_amount_blvd,
+                                        'user_id' => $staffSeller->id,
+                                        'cmmsn_percent' => $staffSeller->product_cmmsn_percent,
+                                        'cmmsn_type' => 'product',
+                                    ]);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         DB::commit();
         return [
                 'success' => 1,
@@ -699,13 +767,26 @@ class WebhookController extends Controller
             $sell_lines = $sell->sell_lines;
         }
         $accountCreditAmount = 0;
+        $accountCreditDiscountAmount = 0;
         $productCardAmount = 0;
+        $productCardDiscountAmount = 0;
+        $giftCardAmount = 0;
+        $giftCardDiscountAmount = 0;
         foreach($order['lineGroups'] as $order_lines)
         {
             foreach($order_lines['lines'] as $product_line)
             {
                 if(isset($product_line['productId']) && !empty($product_line['productId']))
                 {
+                    $product_seller_id = null;
+                    if(isset($product_line['seller']['email']) && !empty($product_line['seller']['email']))
+                    {
+                        $staffProductSeller = User::where('email',$product_line['seller']['email'])->first();
+                        if(!empty($staffProductSeller))
+                        {
+                            $product_seller_id = $staffProductSeller->id;
+                        }
+                    }
                     $product = Product::where('business_id', $business_id)
                             ->where('bvpId', $product_line['productId'])
                             ->with(['variations'])
@@ -748,6 +829,9 @@ class WebhookController extends Controller
                             'item_tax' => $line_tax,
                             'tax_id' => $tax_id,
                             'line_item_id' => $product_line['productId'],
+                            'line_discount_amount_blvd' => number_format($product_line['currentDiscountAmount'] / 100, 2, '.', ''),
+                            'appointment_service_id' => null,
+                            'product_seller_id' => $product_seller_id
                         ];
                         $product_lines[] = $product_data;
                     } else {
@@ -765,6 +849,16 @@ class WebhookController extends Controller
                 }
                 if(isset($product_line['serviceId']) && !empty($product_line['serviceId']))
                 {
+                    $appointment_service_id = "";
+                    if(isset($product_line['id']) && !empty($product_line['id']))
+                    {
+                        $appointment_service_id_data = explode('_',$product_line['id']);
+                        if(is_array($appointment_service_id_data))
+                        {
+                            $appointment_service_id = "urn:blvd:AppointmentService:".$appointment_service_id_data[2];
+                        }
+                    }
+
                     $product = Product::where('business_id', $business_id)
                             ->where('bvpId', $product_line['serviceId'])
                             ->with(['variations'])
@@ -807,6 +901,9 @@ class WebhookController extends Controller
                             'item_tax' => $line_tax,
                             'tax_id' => $tax_id,
                             'line_item_id' => $product_line['serviceId'],
+                            'line_discount_amount_blvd' => number_format($product_line['currentDiscountAmount'] / 100, 2, '.', ''),
+                            'appointment_service_id' => $appointment_service_id,
+                            'product_seller_id' => null
                         ];
                         $product_lines[] = $product_data;
                     } else {
@@ -826,14 +923,29 @@ class WebhookController extends Controller
                 {
                     if (substr($product_line['id'], 0, 2) === 'ac') 
                     {
-                        $accountCreditAmountSubtotal = number_format($product_line['currentSubtotal'] / 100, 2, '.', '');
+                        $accountCreditAmountSubtotal = number_format($product_line['currentPrice'] / 100, 2, '.', '');
                         $accountCreditAmount = $accountCreditAmount + $accountCreditAmountSubtotal;
+                        
+                        $accountCreditDiscountAmountSubtotal = number_format($product_line['currentDiscountAmount'] / 100, 2, '.', '');
+                        $accountCreditDiscountAmount = $accountCreditDiscountAmount + $accountCreditDiscountAmountSubtotal;
                     }
 
                     if (substr($product_line['id'], 0, 2) === 'pc') 
                     {
-                        $productCardAmountSubtotal = number_format($product_line['currentSubtotal'] / 100, 2, '.', '');
+                        $productCardAmountSubtotal = number_format($product_line['currentPrice'] / 100, 2, '.', '');
                         $productCardAmount = $productCardAmount + $productCardAmountSubtotal;
+                        
+                        $productCardDiscountAmountSubtotal = number_format($product_line['currentDiscountAmount'] / 100, 2, '.', '');
+                        $productCardDiscountAmount = $productCardDiscountAmount + $productCardDiscountAmountSubtotal;
+                    }
+
+                    if (substr($product_line['id'], 0, 2) === 'gc') 
+                    {
+                        $giftCardAmountSubtotal = number_format($product_line['currentPrice'] / 100, 2, '.', '');
+                        $giftCardAmount = $giftCardAmount + $giftCardAmountSubtotal;
+
+                        $giftCardDiscountAmountSubtotal = number_format($product_line['currentDiscountAmount'] / 100, 2, '.', '');
+                        $giftCardDiscountAmount = $giftCardDiscountAmount + $giftCardDiscountAmountSubtotal;
                     }
                 }
             }
@@ -961,8 +1073,13 @@ class WebhookController extends Controller
             'additional_expense_value_2' => number_format($order['summary']['currentFeeAmount'] / 100, 2, '.', ''),
             'additional_expense_key_3' => 'AccountCreditAmount',
             'additional_expense_value_3' => $accountCreditAmount,
+            'ac_discount_amount' => $accountCreditDiscountAmount,
             'additional_expense_key_4' => 'ProductCardAmount',
             'additional_expense_value_4' => $productCardAmount,
+            'pc_discount_amount' => $productCardDiscountAmount,
+            'additional_expense_key_5' => 'GiftCardAmount',
+            'additional_expense_value_5' => $giftCardAmount,
+            'gc_discount_amount' => $giftCardDiscountAmount,
         ];
         $payment = [];
         if(!empty($order['paymentGroups'])) 
@@ -1136,6 +1253,150 @@ class WebhookController extends Controller
         $new_sell_data['products'] = $product_lines;
         $new_sell_data['payment'] = $payment;
         return $new_sell_data;
+    }
+
+    public function getAppointments($orderId = "", $closedAt = "",$locationId = "")
+    {
+        if(!empty($orderId) && !empty($closedAt))
+        {
+            $filterStartDate = \Carbon::parse($closedAt);
+            $filterEndDate = $filterStartDate->copy()->addDay()->format('Y-m-d');
+            $filterStartDate = $filterStartDate->format('Y-m-d');
+            $filterDateString = "startAt <= '$filterEndDate' AND startAt > '$filterStartDate'";
+            
+            $response = $this->fetchAppointments(null , $filterDateString,$locationId);
+            $appointments = $response['data']['appointments']['edges'];
+            $pageInfo = $response['data']['appointments']['pageInfo'];
+
+            while ($pageInfo['hasNextPage']) {
+                $endCursor = $pageInfo['endCursor'];
+                $response = $this->fetchAppointments($endCursor , $filterDateString,$locationId);
+                $appointments = array_merge($appointments, $response['data']['appointments']['edges']);
+                $pageInfo = $response['data']['appointments']['pageInfo'];
+            }
+
+            $filteredAppointments = array_filter($appointments, function($appointment) use ($orderId) {
+                return $appointment['node']['orderId'] === $orderId;
+            });
+
+            $filteredServices = array_map(function($appointment) {
+                return $appointment['node'];
+            }, $filteredAppointments);
+            
+            $filteredServices = array_values($filteredServices); // Re-index the array
+
+            if (isset($filteredServices[0])) {
+                $filteredServices = $filteredServices[0]; // Flatten to the first element's root array
+            } else {
+                $filteredServices = []; // Set to an empty array if no elements exist
+            }
+
+            return $filteredServices;
+        }
+    }
+
+    protected function fetchAppointments($endCursor = null, $filterDateString = "", $locationId = "") {
+        $api_token = $this->BoulevardController->authHeader;
+        $api_base_url = $this->BoulevardController->api_base_blvd_url;
+        $query = '
+        query($after: String , $locationId: String , $qstring: String) {
+            appointments(first: 100, after: $after,locationId:$locationId,query:$qstring) {
+                edges
+                {
+                    node {
+                        id
+                        notes
+                        locationId
+                        clientId
+                        orderId
+                        startAt
+                        endAt
+                        appointmentServices {
+                            id
+                            price
+                            service {
+                                id
+                                name
+                            }
+                            staff {
+                                id
+                                name
+                                email
+                                firstName
+                                lastName
+                                mobilePhone
+                            }
+                        }
+                    }
+                }
+                pageInfo{
+                    endCursor
+                    hasNextPage
+                }
+            }
+        }';
+    
+        $variables = ['after' => $endCursor,"locationId"=>$locationId,'qstring' => $filterDateString];
+    
+        $data = json_encode([
+            'query' => $query,
+            'variables' => $variables
+        ]);
+    
+        // Initialize cURL session
+        $ch = curl_init();
+    
+        // Set the cURL options
+        curl_setopt($ch, CURLOPT_URL, $api_base_url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Authorization: ' . $api_token,
+            'Content-Type: application/json',
+            'Accept: application/json',
+            // 'Content-Length: ' . strlen($data) // Try removing this line
+        ]);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+        curl_setopt($ch, CURLOPT_VERBOSE, true); // Enable verbose output for debugging
+    
+        // Execute the cURL request
+        $response = curl_exec($ch);
+    
+        // Check for cURL errors
+        if ($response === false) {
+            $error = curl_error($ch);
+            curl_close($ch);
+            die('Curl error: ' . $error);
+        }
+    
+        // Get the HTTP status code
+        $http_status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    
+        // Get the redirect URL if any
+        $redirect_url = curl_getinfo($ch, CURLINFO_REDIRECT_URL);
+    
+        // Close the cURL session
+        curl_close($ch);
+        
+        // Handle the response
+        if ($http_status == 200) {
+            // Decode the JSON response
+            $response_data = json_decode($response, true);
+    
+            // Check for errors in the GraphQL response
+            if (isset($response_data['errors'])) {
+                return 'GraphQL errors: ' . json_encode($response_data['errors'], JSON_PRETTY_PRINT) . "\n";
+            } else {
+                return $response_data;
+            }
+        } else {
+            return 'Failed to retrieve appointments: HTTP Status ' . $http_status . "\n";
+            if (!empty($redirect_url)) {
+                return 'Redirect URL: ' . $redirect_url . "\n";
+            }
+            return 'Response: ' . $response . "\n";
+        }
     }
 }
 
