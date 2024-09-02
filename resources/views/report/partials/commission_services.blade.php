@@ -7,6 +7,7 @@
             <th>@lang('lang_v1.client')</th>
             <th>@lang('lang_v1.service')</th>
             <th>@lang('lang_v1.list_price')</th>
+            <th>@lang('lang_v1.quantity')</th>
             <th>@lang('lang_v1.item_discount')</th>
             <th>@lang('lang_v1.subtotal')</th>
             <th>@lang('lang_v1.rate')</th>
@@ -17,6 +18,7 @@
         <tr class="bg-gray font-17 footer-total text-center">
             <td colspan="4"><strong>@lang('sale.total'):</strong></td>
             <td class="text-left"><span class="display_currency" id="cmmsn_footer_list_price_total" data-currency_symbol ="true"></span></td>
+            <td class="text-left"><span id="cmmsn_footer_qty_total"></span></td>
             <td class="text-left"><span class="display_currency" id="cmmsn_footer_discount_total" data-currency_symbol ="true"></span></td>
             <td class="text-left"><span class="display_currency" id="cmmsn_footer_subtotal" data-currency_symbol ="true"></span></td>
             <td></td>

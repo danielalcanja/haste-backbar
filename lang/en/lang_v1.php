@@ -1565,4 +1565,5 @@ return [
     'subtotal' => 'Subtotal',
     'rate' => 'Rate',
     'commission' => 'Commission',
+    'product' => 'Product',
 ];

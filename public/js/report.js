@@ -1596,6 +1596,7 @@ $(document).ready(function() {
                 { data: 'customer', name: 'c.name' },
                 { data: 'product_name', name: 'p.name'},
                 { data: 'list_price', name: 'tsl.unit_price_inc_tax' },
+                { data: 'qty', name: 'tsl.quantity' },
                 { data: 'discount_amount', name: 'cmsn_agents.discount_amount' },
                 { data: 'subtotal', name: 'subtotal', searchable: false },
                 { data: 'rate', name: 'cmsn_agents.cmmsn_percent' },
@@ -1604,6 +1605,9 @@ $(document).ready(function() {
             fnDrawCallback: function(oSettings) {
                 $('#cmmsn_footer_list_price_total').text(
                     sum_table_col($('#cmmsn_services_report'), 'list_price')
+                );
+                $('#cmmsn_footer_qty_total').text(
+                    sum_table_col($('#cmmsn_services_report'), 'total_qty')
                 );
                 $('#cmmsn_footer_discount_total').text(
                     sum_table_col($('#cmmsn_services_report'), 'discount_amount')
@@ -1646,6 +1650,7 @@ $(document).ready(function() {
                 { data: 'customer', name: 'c.name' },
                 { data: 'product_name', name: 'p.name'},
                 { data: 'list_price', name: 'tsl.unit_price_inc_tax' },
+                { data: 'qty', name: 'tsl.quantity' },
                 { data: 'discount_amount', name: 'cmsn_agents.discount_amount' },
                 { data: 'subtotal', name: 'subtotal', searchable: false },
                 { data: 'rate', name: 'cmsn_agents.cmmsn_percent' },
@@ -1654,6 +1659,9 @@ $(document).ready(function() {
             fnDrawCallback: function(oSettings) {
                 $('#cmmsn_footer_p_list_price_total').text(
                     sum_table_col($('#cmmsn_products_report'), 'p_list_price')
+                );
+                $('#cmmsn_footer_p_qty_total').text(
+                    sum_table_col($('#cmmsn_products_report'), 'total_p_qty')
                 );
                 $('#cmmsn_footer_p_discount_total').text(
                     sum_table_col($('#cmmsn_products_report'), 'p_discount_amount')

@@ -4108,19 +4108,19 @@ class ReportController extends Controller
                     DB::raw("SUM(
                         CASE
                             WHEN cmsn_agents.cmmsn_type = 'service'
-                            THEN ROUND(((tsl.unit_price_inc_tax - cmsn_agents.discount_amount) * cmsn_agents.cmmsn_percent / 100), 2)
+                            THEN ROUND((((tsl.unit_price_inc_tax * tsl.quantity) - cmsn_agents.discount_amount) * cmsn_agents.cmmsn_percent / 100), 2)
                             ELSE 0
                         END
                     ) as service_commission"),
                     DB::raw("SUM(
                         CASE
                             WHEN cmsn_agents.cmmsn_type = 'product'
-                            THEN ROUND(((tsl.unit_price_inc_tax - cmsn_agents.discount_amount) * cmsn_agents.cmmsn_percent / 100), 2)
+                            THEN ROUND((((tsl.unit_price_inc_tax * tsl.quantity) - cmsn_agents.discount_amount) * cmsn_agents.cmmsn_percent / 100), 2)
                             ELSE 0
                         END
                     ) as product_commission"),
                     DB::raw("SUM(
-                        ROUND(((tsl.unit_price_inc_tax - cmsn_agents.discount_amount) * cmsn_agents.cmmsn_percent / 100), 2)
+                        ROUND((((tsl.unit_price_inc_tax * tsl.quantity) - cmsn_agents.discount_amount) * cmsn_agents.cmmsn_percent / 100), 2)
                     ) as total_commission")  
                 )
                 ->groupBy('u.id');
@@ -4217,10 +4217,11 @@ class ReportController extends Controller
                     'c.name as customer',
                     'p.name as product_name',
                     'tsl.unit_price_inc_tax as list_price',
+                    'tsl.quantity as qty',
                     'cmsn_agents.discount_amount as discount_amount',
-                    DB::raw('(tsl.unit_price_inc_tax - cmsn_agents.discount_amount) as subtotal'),
+                    DB::raw('((tsl.unit_price_inc_tax * tsl.quantity) - cmsn_agents.discount_amount) as subtotal'),
                     'cmsn_agents.cmmsn_percent as rate',
-                    DB::raw("ROUND(((tsl.unit_price_inc_tax - cmsn_agents.discount_amount) * cmsn_agents.cmmsn_percent / 100), 2) as commission"), 
+                    DB::raw("ROUND((((tsl.unit_price_inc_tax * tsl.quantity) - cmsn_agents.discount_amount) * cmsn_agents.cmmsn_percent / 100), 2) as commission"), 
                 );
                 //Check for permitted locations of a user
                 if(!empty($permitted_locations)) {
@@ -4264,6 +4265,9 @@ class ReportController extends Controller
                     return '<span class="list_price" data-orig-value="'.$row->list_price.'">'.
                     $this->transactionUtil->num_f($row->list_price, true).'</span>';
                 })
+                ->editColumn('qty', function ($row) {
+                    return '<span data-is_quantity="true" class="total_qty" data-orig-value="'.$row->qty.'">'.$this->transactionUtil->num_f($row->qty, false, null, true).'</span> ';
+                })
                 ->editColumn('discount_amount', function ($row) {
                     return '<span class="discount_amount"  data-orig-value="'.$row->discount_amount.'">'.
                    $this->transactionUtil->num_f($row->discount_amount, true).'</span>';
@@ -4277,7 +4281,7 @@ class ReportController extends Controller
                     return '<span class="commission" data-orig-value="'.$row->commission.'">'.
                     $this->transactionUtil->num_f($row->commission,true).'</span> ';
                 })
-                ->rawColumns(['staff','transaction_date','customer','product_name','list_price','discount_amount','subtotal','rate','commission'])
+                ->rawColumns(['staff','transaction_date','customer','product_name','list_price','qty','discount_amount','subtotal','rate','commission'])
                 ->make(true);
         }
     }
@@ -4328,10 +4332,11 @@ class ReportController extends Controller
                     'c.name as customer',
                     'p.name as product_name',
                     'tsl.unit_price_inc_tax as list_price',
+                    'tsl.quantity as qty',
                     'cmsn_agents.discount_amount as discount_amount',
-                    DB::raw('(tsl.unit_price_inc_tax - cmsn_agents.discount_amount) as subtotal'),
+                    DB::raw('((tsl.unit_price_inc_tax * tsl.quantity) - cmsn_agents.discount_amount) as subtotal'),
                     'cmsn_agents.cmmsn_percent as rate',
-                    DB::raw("ROUND(((tsl.unit_price_inc_tax - cmsn_agents.discount_amount) * cmsn_agents.cmmsn_percent / 100), 2) as commission"), 
+                    DB::raw("ROUND((((tsl.unit_price_inc_tax * tsl.quantity) - cmsn_agents.discount_amount) * cmsn_agents.cmmsn_percent / 100), 2) as commission"), 
                 );
                 //Check for permitted locations of a user
                 if(!empty($permitted_locations)) {
@@ -4378,6 +4383,9 @@ class ReportController extends Controller
                     return '<span class="p_list_price" data-orig-value="'.$row->list_price.'">'.
                     $this->transactionUtil->num_f($row->list_price, true).'</span>';
                 })
+                ->editColumn('qty', function ($row) {
+                    return '<span data-is_quantity="true" class="total_p_qty" data-orig-value="'.$row->qty.'">'.$this->transactionUtil->num_f($row->qty, false, null, true).'</span> ';
+                })
                 ->editColumn('discount_amount', function ($row) {
                     return '<span class="p_discount_amount"  data-orig-value="'.$row->discount_amount.'">'.
                    $this->transactionUtil->num_f($row->discount_amount, true).'</span>';
@@ -4391,7 +4399,7 @@ class ReportController extends Controller
                     return '<span class="p_commission" data-orig-value="'.$row->commission.'">'.
                     $this->transactionUtil->num_f($row->commission,true).'</span> ';
                 })
-                ->rawColumns(['staff','transaction_date','customer','product_name','list_price','discount_amount','subtotal','rate','commission'])
+                ->rawColumns(['staff','transaction_date','customer','product_name','list_price','qty','discount_amount','subtotal','rate','commission'])
                 ->make(true);
         }
     }
