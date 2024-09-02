@@ -1504,7 +1504,183 @@ $(document).ready(function() {
     $('#tax_report_location_id, #tax_report_date_range, #tax_report_contact_id').change(function() {
         updateTaxReport();
     });
+
+    // commission report
+    if ($('#cmmsn_date_filter').length == 1) {
+        //date range setting
+        $('input#cmmsn_date_filter').daterangepicker(dateRangeSettings, function(start, end) {
+            $('input#cmmsn_date_filter').val(
+                start.format(moment_date_format) + ' ~ ' + end.format(moment_date_format)
+            );
+            updateCommissionReport();
+        });
+        $('input#cmmsn_date_filter').on('apply.daterangepicker', function(ev, picker) {
+            $(this).val(
+                picker.startDate.format(moment_date_format) +
+                    ' ~ ' +
+                    picker.endDate.format(moment_date_format)
+            );
+        });
+    
+        $('input#cmmsn_date_filter').on('cancel.daterangepicker', function(ev, picker) {
+            $(this).val('');
+        });
+    
+        //Comission summary
+        cmmsn_summary_report = $('table#cmmsn_summary_report').DataTable({
+            processing: true,
+            serverSide: true,
+            fixedHeader:false,
+            aaSorting: [[0, 'asc']],
+            ajax: {
+                url: '/reports/commission-summary-report',
+                data: function(d) {
+                    var start = $('input#cmmsn_date_filter')
+                        .data('daterangepicker')
+                        .startDate.format('YYYY-MM-DD');
+                    var end = $('input#cmmsn_date_filter')
+                        .data('daterangepicker')
+                        .endDate.format('YYYY-MM-DD');
+    
+                    (d.created_by = $('select#cmmsn_id').val()),
+                        (d.location_id = $('select#cmmsn_business_id').val()),
+                        (d.start_date = start),
+                        (d.end_date = end);
+                },
+            },
+            columns: [
+                { data: 'staff', name: 'u.first_name' },
+                { data: 'service_commission', name: 'service_commission' , searchable: false},
+                { data: 'product_commission', name: 'product_commission' , searchable: false },
+                { data: 'total_commission', name: 'total_commission' , searchable: false },
+            ],
+            fnDrawCallback: function(oSettings) {
+                $('#cmmsn_footer_services_total').text(
+                    sum_table_col($('#cmmsn_summary_report'), 'cmmsn_services_total')
+                );
+                $('#cmmsn_footer_products_total').text(
+                    sum_table_col($('#cmmsn_summary_report'), 'cmmsn_products_total')
+                );
+                $('#cmmsn_footer_total').text(
+                    sum_table_col($('#cmmsn_summary_report'), 'cmmsn_total')
+                );
+                __currency_convert_recursively($('#cmmsn_summary_report'));
+            },
+        });
+        
+        //Services Comission summary
+        cmmsn_services_report = $('table#cmmsn_services_report').DataTable({
+            processing: true,
+            serverSide: true,
+            fixedHeader:false,
+            aaSorting: [[1, 'desc']],
+            ajax: {
+                url: '/reports/commission-services-report',
+                data: function(d) {
+                    var start = $('input#cmmsn_date_filter')
+                        .data('daterangepicker')
+                        .startDate.format('YYYY-MM-DD');
+                    var end = $('input#cmmsn_date_filter')
+                        .data('daterangepicker')
+                        .endDate.format('YYYY-MM-DD');
+    
+                    (d.created_by = $('select#cmmsn_id').val()),
+                        (d.location_id = $('select#cmmsn_business_id').val()),
+                        (d.start_date = start),
+                        (d.end_date = end);
+                },
+            },
+            columns: [
+                { data: 'staff', name: 'u.first_name' },
+                { data: 'transaction_date', name: 't.transaction_date', searchable: false},
+                { data: 'customer', name: 'c.name' },
+                { data: 'product_name', name: 'p.name'},
+                { data: 'list_price', name: 'tsl.unit_price_inc_tax' },
+                { data: 'discount_amount', name: 'cmsn_agents.discount_amount' },
+                { data: 'subtotal', name: 'subtotal', searchable: false },
+                { data: 'rate', name: 'cmsn_agents.cmmsn_percent' },
+                { data: 'commission', name: 'commission' , searchable: false },
+            ],
+            fnDrawCallback: function(oSettings) {
+                $('#cmmsn_footer_list_price_total').text(
+                    sum_table_col($('#cmmsn_services_report'), 'list_price')
+                );
+                $('#cmmsn_footer_discount_total').text(
+                    sum_table_col($('#cmmsn_services_report'), 'discount_amount')
+                );
+                $('#cmmsn_footer_subtotal').text(
+                    sum_table_col($('#cmmsn_services_report'), 'subtotal')
+                );
+                $('#cmmsn_footer_commission_total').text(
+                    sum_table_col($('#cmmsn_services_report'), 'commission')
+                );
+                __currency_convert_recursively($('#cmmsn_services_report'));
+            },
+        });
+
+        //Products Comission summary
+        cmmsn_products_report = $('table#cmmsn_products_report').DataTable({
+            processing: true,
+            serverSide: true,
+            fixedHeader:false,
+            aaSorting: [[1, 'desc']],
+            ajax: {
+                url: '/reports/commission-products-report',
+                data: function(d) {
+                    var start = $('input#cmmsn_date_filter')
+                        .data('daterangepicker')
+                        .startDate.format('YYYY-MM-DD');
+                    var end = $('input#cmmsn_date_filter')
+                        .data('daterangepicker')
+                        .endDate.format('YYYY-MM-DD');
+    
+                    (d.created_by = $('select#cmmsn_id').val()),
+                        (d.location_id = $('select#cmmsn_business_id').val()),
+                        (d.start_date = start),
+                        (d.end_date = end);
+                },
+            },
+            columns: [
+                { data: 'staff', name: 'u.first_name' },
+                { data: 'transaction_date', name: 't.transaction_date', searchable: false},
+                { data: 'customer', name: 'c.name' },
+                { data: 'product_name', name: 'p.name'},
+                { data: 'list_price', name: 'tsl.unit_price_inc_tax' },
+                { data: 'discount_amount', name: 'cmsn_agents.discount_amount' },
+                { data: 'subtotal', name: 'subtotal', searchable: false },
+                { data: 'rate', name: 'cmsn_agents.cmmsn_percent' },
+                { data: 'commission', name: 'commission' , searchable: false },
+            ],
+            fnDrawCallback: function(oSettings) {
+                $('#cmmsn_footer_p_list_price_total').text(
+                    sum_table_col($('#cmmsn_products_report'), 'p_list_price')
+                );
+                $('#cmmsn_footer_p_discount_total').text(
+                    sum_table_col($('#cmmsn_products_report'), 'p_discount_amount')
+                );
+                $('#cmmsn_footer_p_subtotal').text(
+                    sum_table_col($('#cmmsn_products_report'), 'p_subtotal')
+                );
+                $('#cmmsn_footer_p_commission_total').text(
+                    sum_table_col($('#cmmsn_products_report'), 'p_commission')
+                );
+                __currency_convert_recursively($('#cmmsn_products_report'));
+            },
+        });
+
+        //Commission filter
+        $('select#cmmsn_id, select#cmmsn_business_id').change(function() {
+            updateCommissionReport();
+        });
+    }
 });
+
+//Commission report
+function updateCommissionReport() {
+    cmmsn_summary_report.ajax.reload();
+    cmmsn_services_report.ajax.reload();
+    cmmsn_products_report.ajax.reload();
+}
 
 function updatePurchaseSell() {
     var start = $('#purchase_sell_date_filter')

@@ -30,6 +30,7 @@ use Datatables;
 use DB;
 use Illuminate\Http\Request;
 use Spatie\Activitylog\Models\Activity;
+use App\CmsnAgent;
 
 class ReportController extends Controller
 {
@@ -4050,5 +4051,348 @@ class ReportController extends Controller
         $suppliers = Contact::suppliersDropdown($business_id);
 
         return view('report.gst_purchase_report')->with(compact('suppliers', 'taxes'));
+    }
+
+    /**
+     * Shows commission report
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function getCommissionReport(Request $request)
+    {
+        if (! auth()->user()->can('commission_report.view')) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $business_id = $request->session()->get('user.business_id');
+
+        $users = User::allUsersDropdown($business_id, false);
+        $business_locations = BusinessLocation::forDropdown($business_id, true);
+
+        $business_details = $this->businessUtil->getDetails($business_id);
+        $pos_settings = empty($business_details->pos_settings) ? $this->businessUtil->defaultPosSettings() : json_decode($business_details->pos_settings, true);
+
+        return view('report.commission')
+                ->with(compact('users', 'business_locations', 'pos_settings'));
+    }
+
+    /**
+     * Shows commission summary report
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function getCommissionSummaryReport(Request $request)
+    {
+        if (! auth()->user()->can('commission_report.view')) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $business_id = $request->session()->get('user.business_id');
+
+        if ($request->ajax()) {
+
+            $start_date = $request->get('start_date');
+            $end_date = $request->get('end_date');
+
+            $location_id = $request->get('location_id');
+            $created_by = $request->get('created_by');
+
+            $query = CmsnAgent::join('users as u', 'u.id', '=', 'cmsn_agents.user_id')
+                ->leftjoin('transactions as t', 't.id', '=', 'cmsn_agents.transaction_id')
+                ->leftjoin('transaction_sell_lines as tsl', 'tsl.id', '=', 'cmsn_agents.transaction_sell_line_id')
+                ->where('t.business_id', $business_id)
+                ->where('t.type', 'sell')
+                ->where('t.status', 'final')
+                ->select(
+                    DB::raw("CONCAT(COALESCE(u.surname, ''),' ',COALESCE(u.first_name, ''),' ',COALESCE(u.last_name,'')) as staff"),
+                    DB::raw("SUM(
+                        CASE
+                            WHEN cmsn_agents.cmmsn_type = 'service'
+                            THEN ROUND(((tsl.unit_price_inc_tax - cmsn_agents.discount_amount) * cmsn_agents.cmmsn_percent / 100), 2)
+                            ELSE 0
+                        END
+                    ) as service_commission"),
+                    DB::raw("SUM(
+                        CASE
+                            WHEN cmsn_agents.cmmsn_type = 'product'
+                            THEN ROUND(((tsl.unit_price_inc_tax - cmsn_agents.discount_amount) * cmsn_agents.cmmsn_percent / 100), 2)
+                            ELSE 0
+                        END
+                    ) as product_commission"),
+                    DB::raw("SUM(
+                        ROUND(((tsl.unit_price_inc_tax - cmsn_agents.discount_amount) * cmsn_agents.cmmsn_percent / 100), 2)
+                    ) as total_commission")  
+                )
+                ->groupBy('u.id');
+                
+
+                //Check for permitted locations of a user
+                if(!empty($permitted_locations)) {
+                    if ($permitted_locations != 'all') {
+                        $query->whereIn('t.location_id', $permitted_locations);
+                    }
+                }
+
+                if (! empty($start_date) && ! empty($end_date)) {
+                    $query->whereDate('t.transaction_date', '>=', $start_date)
+                        ->whereDate('t.transaction_date', '<=', $end_date);
+                }
+
+                if (empty($start_date) && ! empty($end_date)) {
+                    $query->whereDate('t.transaction_date', '<=', $end_date);
+                }
+
+                //Filter by the location
+                if (! empty($location_id)) {
+                    $query->where('t.location_id', $location_id);
+                }
+
+                if (! empty($created_by)) {
+                    $query->where('cmsn_agents.user_id', $created_by);
+                }
+            
+                // $commission_summary = $query->get()->toArray();
+                // echo "<pre>";
+                // print_r($commission_summary);
+                // exit;
+
+            return Datatables::of($query)
+                ->editColumn('service_commission', function ($row) {
+                    return '<span class="display_currency cmmsn_services_total" data-currency_symbol=true data-orig-value="'.(float) $row->service_commission.'">'.(float) $row->service_commission.'</span> ';
+                })
+                ->editColumn('product_commission', function ($row) {
+                    return '<span class="display_currency cmmsn_products_total" data-currency_symbol=true data-orig-value="'.(float) $row->product_commission.'">'.(float) $row->product_commission.'</span> ';
+                })
+                ->editColumn('total_commission', function ($row) {
+                    return '<span class="display_currency cmmsn_total" data-currency_symbol=true data-orig-value="'.(float) $row->total_commission.'">'.(float) $row->total_commission.'</span> ';
+                })
+                ->rawColumns(['staff', 'service_commission', 'product_commission','total_commission'])
+                ->make(true);
+        }
+    }
+
+    /**
+     * Shows services commission report
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function getCommissionServicesReport(Request $request)
+    {
+        if (! auth()->user()->can('commission_report.view')) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $business_id = $request->session()->get('user.business_id');
+
+        if ($request->ajax()) {
+
+            $start_date = $request->get('start_date');
+            $end_date = $request->get('end_date');
+
+            $location_id = $request->get('location_id');
+            $created_by = $request->get('created_by');
+
+            $query = CmsnAgent::join('users as u', 'u.id', '=', 'cmsn_agents.user_id')
+                ->leftjoin('transactions as t', 't.id', '=', 'cmsn_agents.transaction_id')
+                ->leftjoin('transaction_sell_lines as tsl', 'tsl.id', '=', 'cmsn_agents.transaction_sell_line_id')
+                ->join(
+                    'variations as v',
+                    'tsl.variation_id',
+                    '=',
+                    'v.id'
+                )
+                ->join('product_variations as pv', 'v.product_variation_id', '=', 'pv.id')
+                ->join('contacts as c', 't.contact_id', '=', 'c.id')
+                ->join('products as p', 'pv.product_id', '=', 'p.id')
+                ->where('t.business_id', $business_id)
+                ->where('t.type', 'sell')
+                ->where('t.status', 'final')
+                ->where('cmsn_agents.cmmsn_type', 'service')
+                ->select(
+                    'cmsn_agents.id as cmsn_id',
+                    'u.id as user_id',
+                    't.id',
+                    't.transaction_date as transaction_date',
+                    DB::raw("CONCAT(COALESCE(u.surname, ''),' ',COALESCE(u.first_name, ''),' ',COALESCE(u.last_name,'')) as staff"),
+                    'c.name as customer',
+                    'p.name as product_name',
+                    'tsl.unit_price_inc_tax as list_price',
+                    'cmsn_agents.discount_amount as discount_amount',
+                    DB::raw('(tsl.unit_price_inc_tax - cmsn_agents.discount_amount) as subtotal'),
+                    'cmsn_agents.cmmsn_percent as rate',
+                    DB::raw("ROUND(((tsl.unit_price_inc_tax - cmsn_agents.discount_amount) * cmsn_agents.cmmsn_percent / 100), 2) as commission"), 
+                );
+                //Check for permitted locations of a user
+                if(!empty($permitted_locations)) {
+                    if ($permitted_locations != 'all') {
+                        $query->whereIn('t.location_id', $permitted_locations);
+                    }
+                }
+
+                if (! empty($start_date) && ! empty($end_date)) {
+                    $query->whereDate('t.transaction_date', '>=', $start_date)
+                        ->whereDate('t.transaction_date', '<=', $end_date);
+                }
+
+                if (empty($start_date) && ! empty($end_date)) {
+                    $query->whereDate('t.transaction_date', '<=', $end_date);
+                }
+
+                //Filter by the location
+                if (! empty($location_id)) {
+                    $query->where('t.location_id', $location_id);
+                }
+
+                if (! empty($created_by)) {
+                    $query->where('cmsn_agents.user_id', $created_by);
+                }
+            
+                
+
+            return Datatables::of($query)
+                ->editColumn('transaction_date', '{{@format_datetime($transaction_date)}}')
+                ->editColumn('customer', '@if(!empty($supplier_business_name)) {{$supplier_business_name}},<br>@endif {{$customer}}')
+                ->editColumn('product_name', function ($row) {
+                    $product_name = $row->product_name;
+                    if ($row->product_type == 'variable') {
+                        $product_name .= ' - '.$row->product_variation.' - '.$row->variation_name;
+                    }
+
+                    return $product_name;
+                })
+                ->editColumn('list_price', function ($row) {
+                    return '<span class="list_price" data-orig-value="'.$row->list_price.'">'.
+                    $this->transactionUtil->num_f($row->list_price, true).'</span>';
+                })
+                ->editColumn('discount_amount', function ($row) {
+                    return '<span class="discount_amount"  data-orig-value="'.$row->discount_amount.'">'.
+                   $this->transactionUtil->num_f($row->discount_amount, true).'</span>';
+                })
+                ->editColumn('subtotal', function ($row) {
+                    return '<span class="subtotal"  data-orig-value="'.$row->subtotal.'">'.
+                   $this->transactionUtil->num_f($row->subtotal, true).'</span>';
+                })
+                ->editColumn('rate', '{{@num_format($rate)}} %')
+                ->editColumn('commission', function ($row) {
+                    return '<span class="commission" data-orig-value="'.$row->commission.'">'.
+                    $this->transactionUtil->num_f($row->commission,true).'</span> ';
+                })
+                ->rawColumns(['staff','transaction_date','customer','product_name','list_price','discount_amount','subtotal','rate','commission'])
+                ->make(true);
+        }
+    }
+
+    /**
+     * Shows products commission report
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function getCommissionProductsReport(Request $request)
+    {
+        if (! auth()->user()->can('commission_report.view')) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $business_id = $request->session()->get('user.business_id');
+
+        if ($request->ajax()) {
+
+            $start_date = $request->get('start_date');
+            $end_date = $request->get('end_date');
+
+            $location_id = $request->get('location_id');
+            $created_by = $request->get('created_by');
+
+            $query = CmsnAgent::join('users as u', 'u.id', '=', 'cmsn_agents.user_id')
+                ->leftjoin('transactions as t', 't.id', '=', 'cmsn_agents.transaction_id')
+                ->leftjoin('transaction_sell_lines as tsl', 'tsl.id', '=', 'cmsn_agents.transaction_sell_line_id')
+                ->join(
+                    'variations as v',
+                    'tsl.variation_id',
+                    '=',
+                    'v.id'
+                )
+                ->join('product_variations as pv', 'v.product_variation_id', '=', 'pv.id')
+                ->join('contacts as c', 't.contact_id', '=', 'c.id')
+                ->join('products as p', 'pv.product_id', '=', 'p.id')
+                ->where('t.business_id', $business_id)
+                ->where('t.type', 'sell')
+                ->where('t.status', 'final')
+                ->where('cmsn_agents.cmmsn_type', 'product')
+                ->select(
+                    'cmsn_agents.id as cmsn_id',
+                    'u.id as user_id',
+                    't.id',
+                    't.transaction_date as transaction_date',
+                    DB::raw("CONCAT(COALESCE(u.surname, ''),' ',COALESCE(u.first_name, ''),' ',COALESCE(u.last_name,'')) as staff"),
+                    'c.name as customer',
+                    'p.name as product_name',
+                    'tsl.unit_price_inc_tax as list_price',
+                    'cmsn_agents.discount_amount as discount_amount',
+                    DB::raw('(tsl.unit_price_inc_tax - cmsn_agents.discount_amount) as subtotal'),
+                    'cmsn_agents.cmmsn_percent as rate',
+                    DB::raw("ROUND(((tsl.unit_price_inc_tax - cmsn_agents.discount_amount) * cmsn_agents.cmmsn_percent / 100), 2) as commission"), 
+                );
+                //Check for permitted locations of a user
+                if(!empty($permitted_locations)) {
+                    if ($permitted_locations != 'all') {
+                        $query->whereIn('t.location_id', $permitted_locations);
+                    }
+                }
+
+                if (! empty($start_date) && ! empty($end_date)) {
+                    $query->whereDate('t.transaction_date', '>=', $start_date)
+                        ->whereDate('t.transaction_date', '<=', $end_date);
+                }
+
+                if (empty($start_date) && ! empty($end_date)) {
+                    $query->whereDate('t.transaction_date', '<=', $end_date);
+                }
+
+                //Filter by the location
+                if (! empty($location_id)) {
+                    $query->where('t.location_id', $location_id);
+                }
+
+                if (! empty($created_by)) {
+                    $query->where('cmsn_agents.user_id', $created_by);
+                }
+            
+            //  $commission_products =  $query->get()->toArray();
+            //  echo "<pre>";
+            //  print_r($commission_products);
+            //  exit;  
+
+            return Datatables::of($query)
+                ->editColumn('transaction_date', '{{@format_datetime($transaction_date)}}')
+                ->editColumn('customer', '@if(!empty($supplier_business_name)) {{$supplier_business_name}},<br>@endif {{$customer}}')
+                ->editColumn('product_name', function ($row) {
+                    $product_name = $row->product_name;
+                    if ($row->product_type == 'variable') {
+                        $product_name .= ' - '.$row->product_variation.' - '.$row->variation_name;
+                    }
+
+                    return $product_name;
+                })
+                ->editColumn('list_price', function ($row) {
+                    return '<span class="p_list_price" data-orig-value="'.$row->list_price.'">'.
+                    $this->transactionUtil->num_f($row->list_price, true).'</span>';
+                })
+                ->editColumn('discount_amount', function ($row) {
+                    return '<span class="p_discount_amount"  data-orig-value="'.$row->discount_amount.'">'.
+                   $this->transactionUtil->num_f($row->discount_amount, true).'</span>';
+                })
+                ->editColumn('subtotal', function ($row) {
+                    return '<span class="p_subtotal"  data-orig-value="'.$row->subtotal.'">'.
+                   $this->transactionUtil->num_f($row->subtotal, true).'</span>';
+                })
+                ->editColumn('rate', '{{@num_format($rate)}} %')
+                ->editColumn('commission', function ($row) {
+                    return '<span class="p_commission" data-orig-value="'.$row->commission.'">'.
+                    $this->transactionUtil->num_f($row->commission,true).'</span> ';
+                })
+                ->rawColumns(['staff','transaction_date','customer','product_name','list_price','discount_amount','subtotal','rate','commission'])
+                ->make(true);
+        }
     }
 }

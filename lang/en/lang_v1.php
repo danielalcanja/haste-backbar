@@ -1556,4 +1556,13 @@ return [
     'product_units' => 'Products Units',
     'gift_cards' => 'Gift cards',
     'product_cmmsn_percent' => 'Products Commission Percentage (%)',
+    'commission_summary' => 'Commission Summary',
+    'commission_services' => 'Services Commission',
+    'commission_products' => 'Products Commission',
+    'staff' => 'Staff',
+    'client' => 'Client',
+    'list_price' => 'List Price',
+    'subtotal' => 'Subtotal',
+    'rate' => 'Rate',
+    'commission' => 'Commission',
 ];
