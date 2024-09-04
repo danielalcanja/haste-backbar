@@ -138,4 +138,12 @@ LANG = {
     'authentication_successfull': 'Authentication successfull',
     'please_enter' : 'Please enter ',
     'or_more_characters' : 'or more characters',
+    'revenue' : 'Revenue',
+    'cogs' : 'COGS (Hair Stylers)',
+    'cogs' : 'COGS (Hair Stylers)',
+    'gm' : 'Gross Margin',
+    'gmp' : 'GM%',
+    'oes' : 'Operating Expenses',
+    'oep' : 'Operating Margin',
+    'margin_report' : 'Margin Report',
 };

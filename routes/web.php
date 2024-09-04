@@ -302,10 +302,14 @@ Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone', 
     Route::get('/reports/items-report', [ReportController::class, 'itemsReport']);
     Route::get('/reports/get-stock-value', [ReportController::class, 'getStockValue']);
 
+    // Commission reports
     Route::get('/reports/commission-report', [ReportController::class, 'getCommissionReport']);
     Route::get('/reports/commission-summary-report', [ReportController::class, 'getCommissionSummaryReport']);
     Route::get('/reports/commission-services-report', [ReportController::class, 'getCommissionServicesReport']);
     Route::get('/reports/commission-products-report', [ReportController::class, 'getCommissionProductsReport']);
+    
+    // Margin reports
+    Route::get('/reports/margin-report', [ReportController::class, 'getMarginReport']);
 
     Route::get('business-location/activate-deactivate/{location_id}', [BusinessLocationController::class, 'activateDeactivateLocation']);
 

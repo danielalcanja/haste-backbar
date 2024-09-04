@@ -4125,7 +4125,7 @@ class ReportController extends Controller
                 )
                 ->groupBy('u.id');
                 
-
+                $permitted_locations = auth()->user()->permitted_locations();
                 //Check for permitted locations of a user
                 if(!empty($permitted_locations)) {
                     if ($permitted_locations != 'all') {
@@ -4223,6 +4223,8 @@ class ReportController extends Controller
                     'cmsn_agents.cmmsn_percent as rate',
                     DB::raw("ROUND((((tsl.unit_price_inc_tax * tsl.quantity) - cmsn_agents.discount_amount) * cmsn_agents.cmmsn_percent / 100), 2) as commission"), 
                 );
+
+                $permitted_locations = auth()->user()->permitted_locations();
                 //Check for permitted locations of a user
                 if(!empty($permitted_locations)) {
                     if ($permitted_locations != 'all') {
@@ -4338,6 +4340,8 @@ class ReportController extends Controller
                     'cmsn_agents.cmmsn_percent as rate',
                     DB::raw("ROUND((((tsl.unit_price_inc_tax * tsl.quantity) - cmsn_agents.discount_amount) * cmsn_agents.cmmsn_percent / 100), 2) as commission"), 
                 );
+                
+                $permitted_locations = auth()->user()->permitted_locations();
                 //Check for permitted locations of a user
                 if(!empty($permitted_locations)) {
                     if ($permitted_locations != 'all') {
@@ -4402,5 +4406,432 @@ class ReportController extends Controller
                 ->rawColumns(['staff','transaction_date','customer','product_name','list_price','qty','discount_amount','subtotal','rate','commission'])
                 ->make(true);
         }
+    }
+
+    /**
+     * Shows margin report
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function getMarginReport(Request $request)
+    {
+        if (! auth()->user()->can('margin_report.view')) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $business_id = $request->session()->get('user.business_id');
+
+        $users = User::allUsersDropdown($business_id, false);
+        $business_locations = BusinessLocation::forDropdown($business_id, true);
+
+        $business_details = $this->businessUtil->getDetails($business_id);
+        $pos_settings = empty($business_details->pos_settings) ? $this->businessUtil->defaultPosSettings() : json_decode($business_details->pos_settings, true);
+        if ($request->ajax()) 
+        {
+            $year = $request->get('year');
+            $location_id = $request->get('location_id', null);
+            $allowed_locations = auth()->user()->permitted_locations();
+            $permitted_locations = null;
+            //Check for permitted locations of a user
+            if(!empty($allowed_locations)) {
+                if ($allowed_locations != 'all') {
+                    $permitted_locations = $allowed_locations;
+                }
+            }
+            
+            $data = DB::select("
+            SELECT 
+                CONCAT(
+                    'Revenue: ', 
+                    SUM(CASE 
+                        WHEN MONTH(t.transaction_date) = 1 AND t.type = 'sell' AND t.status = 'final' AND TP.is_return = 1 THEN -1 * TP.amount
+                        WHEN MONTH(t.transaction_date) = 1 AND t.type = 'sell' AND t.status = 'final' THEN TP.amount
+                        ELSE 0 
+                    END), 
+                    '\nCOGS: ', 
+                    SUM(CASE 
+                        WHEN MONTH(t.transaction_date) = 1 AND t.type = 'expense' AND t.status = 'final' AND t.expense_category_id = 6 AND t.expense_sub_category_id = 7 AND TP.is_return = 1 THEN -1 * TP.amount
+                        WHEN MONTH(t.transaction_date) = 1 AND t.type = 'expense' AND t.status = 'final' AND t.expense_category_id = 6 AND t.expense_sub_category_id = 7 THEN TP.amount
+                        ELSE 0 
+                    END),
+                    '\nOe: ', 
+                    SUM(CASE 
+                        WHEN MONTH(t.transaction_date) = 1 AND t.type = 'expense' AND t.status = 'final' AND TP.is_return = 1 THEN -1 * TP.amount
+                        WHEN MONTH(t.transaction_date) = 1 AND t.type = 'expense' AND t.status = 'final' THEN TP.amount
+                        ELSE 0 
+                    END),
+                    '\nex_categories: ',
+                    (SELECT
+                        CASE 
+                            WHEN GROUP_CONCAT(DISTINCT ec.name SEPARATOR ',') IS NULL 
+                            THEN 'cat_empty' 
+                            ELSE GROUP_CONCAT(DISTINCT ec.name SEPARATOR ',') 
+                        END  
+                    FROM expense_categories ec
+                    LEFT JOIN transactions t ON t.expense_category_id = ec.id
+                    WHERE MONTH(t.transaction_date) = 1 AND YEAR(t.transaction_date) = '".$year."' AND t.type = 'expense' AND t.status = 'final')
+                ) AS ".__('report.jan')."_".$year.",
+                CONCAT(
+                    'Revenue: ', 
+                    SUM(CASE 
+                        WHEN MONTH(t.transaction_date) = 2 AND t.type = 'sell' AND t.status = 'final' AND TP.is_return = 1 THEN -1 * TP.amount
+                        WHEN MONTH(t.transaction_date) = 2 AND t.type = 'sell' AND t.status = 'final' THEN TP.amount
+                        ELSE 0 
+                    END), 
+                    '\nCOGS: ', 
+                    SUM(CASE 
+                        WHEN MONTH(t.transaction_date) = 2 AND t.type = 'expense' AND t.status = 'final' AND t.expense_category_id = 6 AND t.expense_sub_category_id = 7 AND TP.is_return = 1 THEN -1 * TP.amount
+                        WHEN MONTH(t.transaction_date) = 2 AND t.type = 'expense' AND t.status = 'final' AND t.expense_category_id = 6 AND t.expense_sub_category_id = 7 THEN TP.amount
+                        ELSE 0 
+                    END),
+                    '\nOe: ', 
+                    SUM(CASE 
+                        WHEN MONTH(t.transaction_date) = 2 AND t.type = 'expense' AND t.status = 'final' AND TP.is_return = 1 THEN -1 * TP.amount
+                        WHEN MONTH(t.transaction_date) = 2 AND t.type = 'expense' AND t.status = 'final' THEN TP.amount
+                        ELSE 0 
+                    END),
+                    '\nex_categories: ',
+                    (SELECT
+                        CASE 
+                            WHEN GROUP_CONCAT(DISTINCT ec.name SEPARATOR ',') IS NULL 
+                            THEN 'cat_empty' 
+                            ELSE GROUP_CONCAT(DISTINCT ec.name SEPARATOR ',') 
+                        END  
+                    FROM expense_categories ec
+                    LEFT JOIN transactions t ON t.expense_category_id = ec.id
+                    WHERE MONTH(t.transaction_date) = 2 AND YEAR(t.transaction_date) = '".$year."' AND t.type = 'expense' AND t.status = 'final')
+                ) AS ".__('report.feb')."_".$year.",
+                CONCAT(
+                    'Revenue: ', 
+                    SUM(CASE 
+                        WHEN MONTH(t.transaction_date) = 3 AND t.type = 'sell' AND t.status = 'final' AND TP.is_return = 1 THEN -1 * TP.amount
+                        WHEN MONTH(t.transaction_date) = 3 AND t.type = 'sell' AND t.status = 'final' THEN TP.amount
+                        ELSE 0 
+                    END), 
+                    '\nCOGS: ', 
+                    SUM(CASE 
+                        WHEN MONTH(t.transaction_date) = 3 AND t.type = 'expense' AND t.status = 'final' AND t.expense_category_id = 6 AND t.expense_sub_category_id = 7 AND TP.is_return = 1 THEN -1 * TP.amount
+                        WHEN MONTH(t.transaction_date) = 3 AND t.type = 'expense' AND t.status = 'final' AND t.expense_category_id = 6 AND t.expense_sub_category_id = 7 THEN TP.amount
+                        ELSE 0 
+                    END),
+                    '\nOe: ', 
+                    SUM(CASE 
+                        WHEN MONTH(t.transaction_date) = 3 AND t.type = 'expense' AND t.status = 'final' AND TP.is_return = 1 THEN -1 * TP.amount
+                        WHEN MONTH(t.transaction_date) = 3 AND t.type = 'expense' AND t.status = 'final' THEN TP.amount
+                        ELSE 0 
+                    END),
+                    '\nex_categories: ',
+                    (SELECT
+                        CASE 
+                            WHEN GROUP_CONCAT(DISTINCT ec.name SEPARATOR ',') IS NULL 
+                            THEN 'cat_empty' 
+                            ELSE GROUP_CONCAT(DISTINCT ec.name SEPARATOR ',') 
+                        END  
+                    FROM expense_categories ec
+                    LEFT JOIN transactions t ON t.expense_category_id = ec.id
+                    WHERE MONTH(t.transaction_date) = 3 AND YEAR(t.transaction_date) = '".$year."' AND t.type = 'expense' AND t.status = 'final')
+                ) AS ".__('report.mar')."_".$year.",
+                CONCAT(
+                    'Revenue: ', 
+                    SUM(CASE 
+                        WHEN MONTH(t.transaction_date) = 4 AND t.type = 'sell' AND t.status = 'final' AND TP.is_return = 1 THEN -1 * TP.amount
+                        WHEN MONTH(t.transaction_date) = 4 AND t.type = 'sell' AND t.status = 'final' THEN TP.amount
+                        ELSE 0 
+                    END), 
+                    '\nCOGS: ', 
+                    SUM(CASE 
+                        WHEN MONTH(t.transaction_date) = 4 AND t.type = 'expense' AND t.status = 'final' AND t.expense_category_id = 6 AND t.expense_sub_category_id = 7 AND TP.is_return = 1 THEN -1 * TP.amount
+                        WHEN MONTH(t.transaction_date) = 4 AND t.type = 'expense' AND t.status = 'final' AND t.expense_category_id = 6 AND t.expense_sub_category_id = 7 THEN TP.amount
+                        ELSE 0 
+                    END),
+                    '\nOe: ', 
+                    SUM(CASE 
+                        WHEN MONTH(t.transaction_date) = 4 AND t.type = 'expense' AND t.status = 'final' AND TP.is_return = 1 THEN -1 * TP.amount
+                        WHEN MONTH(t.transaction_date) = 4 AND t.type = 'expense' AND t.status = 'final' THEN TP.amount
+                        ELSE 0 
+                    END),
+                    '\nex_categories: ',
+                    (SELECT
+                        CASE 
+                            WHEN GROUP_CONCAT(DISTINCT ec.name SEPARATOR ',') IS NULL 
+                            THEN 'cat_empty' 
+                            ELSE GROUP_CONCAT(DISTINCT ec.name SEPARATOR ',') 
+                        END  
+                    FROM expense_categories ec
+                    LEFT JOIN transactions t ON t.expense_category_id = ec.id
+                    WHERE MONTH(t.transaction_date) = 4 AND YEAR(t.transaction_date) = '".$year."' AND t.type = 'expense' AND t.status = 'final')
+                ) AS ".__('report.apr')."_".$year.",
+                CONCAT(
+                    'Revenue: ', 
+                    SUM(CASE 
+                        WHEN MONTH(t.transaction_date) = 5 AND t.type = 'sell' AND t.status = 'final' AND TP.is_return = 1 THEN -1 * TP.amount
+                        WHEN MONTH(t.transaction_date) = 5 AND t.type = 'sell' AND t.status = 'final' THEN TP.amount
+                        ELSE 0 
+                    END), 
+                    '\nCOGS: ', 
+                    SUM(CASE 
+                        WHEN MONTH(t.transaction_date) = 5 AND t.type = 'expense' AND t.status = 'final' AND t.expense_category_id = 6 AND t.expense_sub_category_id = 7 AND TP.is_return = 1 THEN -1 * TP.amount
+                        WHEN MONTH(t.transaction_date) = 5 AND t.type = 'expense' AND t.status = 'final' AND t.expense_category_id = 6 AND t.expense_sub_category_id = 7 THEN TP.amount
+                        ELSE 0 
+                    END),
+                    '\nOe: ', 
+                    SUM(CASE 
+                        WHEN MONTH(t.transaction_date) = 5 AND t.type = 'expense' AND t.status = 'final' AND TP.is_return = 1 THEN -1 * TP.amount
+                        WHEN MONTH(t.transaction_date) = 5 AND t.type = 'expense' AND t.status = 'final' THEN TP.amount
+                        ELSE 0 
+                    END),
+                    '\nex_categories: ',
+                    (SELECT
+                        CASE 
+                            WHEN GROUP_CONCAT(DISTINCT ec.name SEPARATOR ',') IS NULL 
+                            THEN 'cat_empty' 
+                            ELSE GROUP_CONCAT(DISTINCT ec.name SEPARATOR ',') 
+                        END  
+                    FROM expense_categories ec
+                    LEFT JOIN transactions t ON t.expense_category_id = ec.id
+                    WHERE MONTH(t.transaction_date) = 5 AND YEAR(t.transaction_date) = '".$year."' AND t.type = 'expense' AND t.status = 'final')
+                ) AS ".__('report.may')."_".$year.",
+                CONCAT(
+                    'Revenue: ', 
+                    SUM(CASE 
+                        WHEN MONTH(t.transaction_date) = 6 AND t.type = 'sell' AND t.status = 'final' AND TP.is_return = 1 THEN -1 * TP.amount
+                        WHEN MONTH(t.transaction_date) = 6 AND t.type = 'sell' AND t.status = 'final' THEN TP.amount
+                        ELSE 0 
+                    END), 
+                    '\nCOGS: ', 
+                    SUM(CASE 
+                        WHEN MONTH(t.transaction_date) = 6 AND t.type = 'expense' AND t.status = 'final' AND t.expense_category_id = 6 AND t.expense_sub_category_id = 7 AND TP.is_return = 1 THEN -1 * TP.amount
+                        WHEN MONTH(t.transaction_date) = 6 AND t.type = 'expense' AND t.status = 'final' AND t.expense_category_id = 6 AND t.expense_sub_category_id = 7 THEN TP.amount
+                        ELSE 0 
+                    END),
+                    '\nOe: ', 
+                    SUM(CASE 
+                        WHEN MONTH(t.transaction_date) = 6 AND t.type = 'expense' AND t.status = 'final' AND TP.is_return = 1 THEN -1 * TP.amount
+                        WHEN MONTH(t.transaction_date) = 6 AND t.type = 'expense' AND t.status = 'final' THEN TP.amount
+                        ELSE 0 
+                    END),
+                    '\nex_categories: ',
+                    (SELECT
+                        CASE 
+                            WHEN GROUP_CONCAT(DISTINCT ec.name SEPARATOR ',') IS NULL 
+                            THEN 'cat_empty' 
+                            ELSE GROUP_CONCAT(DISTINCT ec.name SEPARATOR ',') 
+                        END  
+                    FROM expense_categories ec
+                    LEFT JOIN transactions t ON t.expense_category_id = ec.id
+                    WHERE MONTH(t.transaction_date) = 6 AND YEAR(t.transaction_date) = '".$year."' AND t.type = 'expense' AND t.status = 'final')
+                ) AS ".__('report.jun')."_".$year.",
+                CONCAT(
+                    'Revenue: ', 
+                    SUM(CASE 
+                        WHEN MONTH(t.transaction_date) = 7 AND t.type = 'sell' AND t.status = 'final' AND TP.is_return = 1 THEN -1 * TP.amount
+                        WHEN MONTH(t.transaction_date) = 7 AND t.type = 'sell' AND t.status = 'final' THEN TP.amount
+                        ELSE 0 
+                    END), 
+                    '\nCOGS: ', 
+                    SUM(CASE 
+                        WHEN MONTH(t.transaction_date) = 7 AND t.type = 'expense' AND t.status = 'final' AND t.expense_category_id = 6 AND t.expense_sub_category_id = 7 AND TP.is_return = 1 THEN -1 * TP.amount
+                        WHEN MONTH(t.transaction_date) = 7 AND t.type = 'expense' AND t.status = 'final' AND t.expense_category_id = 6 AND t.expense_sub_category_id = 7 THEN TP.amount
+                        ELSE 0 
+                    END),
+                    '\nOe: ', 
+                    SUM(CASE 
+                        WHEN MONTH(t.transaction_date) = 7 AND t.type = 'expense' AND t.status = 'final' AND TP.is_return = 1 THEN -1 * TP.amount
+                        WHEN MONTH(t.transaction_date) = 7 AND t.type = 'expense' AND t.status = 'final' THEN TP.amount
+                        ELSE 0 
+                    END),
+                    '\nex_categories: ',
+                    (SELECT
+                        CASE 
+                            WHEN GROUP_CONCAT(DISTINCT ec.name SEPARATOR ',') IS NULL 
+                            THEN 'cat_empty' 
+                            ELSE GROUP_CONCAT(DISTINCT ec.name SEPARATOR ',') 
+                        END  
+                    FROM expense_categories ec
+                    LEFT JOIN transactions t ON t.expense_category_id = ec.id
+                    WHERE MONTH(t.transaction_date) = 7 AND YEAR(t.transaction_date) = '".$year."' AND t.type = 'expense' AND t.status = 'final')
+                ) AS ".__('report.jul')."_".$year.",
+                CONCAT(
+                    'Revenue: ', 
+                    SUM(CASE 
+                        WHEN MONTH(t.transaction_date) = 8 AND t.type = 'sell' AND t.status = 'final' AND TP.is_return = 1 THEN -1 * TP.amount
+                        WHEN MONTH(t.transaction_date) = 8 AND t.type = 'sell' AND t.status = 'final' THEN TP.amount
+                        ELSE 0 
+                    END), 
+                    '\nCOGS: ', 
+                    SUM(CASE 
+                        WHEN MONTH(t.transaction_date) = 8 AND t.type = 'expense' AND t.status = 'final' AND t.expense_category_id = 6 AND t.expense_sub_category_id = 7 AND TP.is_return = 1 THEN -1 * TP.amount
+                        WHEN MONTH(t.transaction_date) = 8 AND t.type = 'expense' AND t.status = 'final' AND t.expense_category_id = 6 AND t.expense_sub_category_id = 7 THEN TP.amount
+                        ELSE 0 
+                    END),
+                    '\nOe: ', 
+                    SUM(CASE 
+                        WHEN MONTH(t.transaction_date) = 8 AND t.type = 'expense' AND t.status = 'final' AND TP.is_return = 1 THEN -1 * TP.amount
+                        WHEN MONTH(t.transaction_date) = 8 AND t.type = 'expense' AND t.status = 'final' THEN TP.amount
+                        ELSE 0 
+                    END),
+                    '\nex_categories: ',
+                    (SELECT
+                        CASE 
+                            WHEN GROUP_CONCAT(DISTINCT ec.name SEPARATOR ',') IS NULL 
+                            THEN 'cat_empty' 
+                            ELSE GROUP_CONCAT(DISTINCT ec.name SEPARATOR ',') 
+                        END  
+                    FROM expense_categories ec
+                    LEFT JOIN transactions t ON t.expense_category_id = ec.id
+                    WHERE MONTH(t.transaction_date) = 8 AND YEAR(t.transaction_date) = '".$year."' AND t.type = 'expense' AND t.status = 'final')
+                ) AS ".__('report.aug')."_".$year.",
+                CONCAT(
+                    'Revenue: ', 
+                    SUM(CASE 
+                        WHEN MONTH(t.transaction_date) = 9 AND t.type = 'sell' AND t.status = 'final' AND TP.is_return = 1 THEN -1 * TP.amount
+                        WHEN MONTH(t.transaction_date) = 9 AND t.type = 'sell' AND t.status = 'final' THEN TP.amount
+                        ELSE 0 
+                    END), 
+                    '\nCOGS: ', 
+                    SUM(CASE 
+                        WHEN MONTH(t.transaction_date) = 9 AND t.type = 'expense' AND t.status = 'final' AND t.expense_category_id = 6 AND t.expense_sub_category_id = 7 AND TP.is_return = 1 THEN -1 * TP.amount
+                        WHEN MONTH(t.transaction_date) = 9 AND t.type = 'expense' AND t.status = 'final' AND t.expense_category_id = 6 AND t.expense_sub_category_id = 7 THEN TP.amount
+                        ELSE 0 
+                    END),
+                    '\nOe: ', 
+                    SUM(CASE 
+                        WHEN MONTH(t.transaction_date) = 9 AND t.type = 'expense' AND t.status = 'final' AND TP.is_return = 1 THEN -1 * TP.amount
+                        WHEN MONTH(t.transaction_date) = 9 AND t.type = 'expense' AND t.status = 'final' THEN TP.amount
+                        ELSE 0 
+                    END),
+                    '\nex_categories: ',
+                    (SELECT
+                        CASE 
+                            WHEN GROUP_CONCAT(DISTINCT ec.name SEPARATOR ',') IS NULL 
+                            THEN 'cat_empty' 
+                            ELSE GROUP_CONCAT(DISTINCT ec.name SEPARATOR ',') 
+                        END  
+                    FROM expense_categories ec
+                    LEFT JOIN transactions t ON t.expense_category_id = ec.id
+                    WHERE MONTH(t.transaction_date) = 9 AND YEAR(t.transaction_date) = '".$year."' AND t.type = 'expense' AND t.status = 'final')
+                ) AS ".__('report.sep')."_".$year.",
+                CONCAT(
+                    'Revenue: ', 
+                    SUM(CASE 
+                        WHEN MONTH(t.transaction_date) = 10 AND t.type = 'sell' AND t.status = 'final' AND TP.is_return = 1 THEN -1 * TP.amount
+                        WHEN MONTH(t.transaction_date) = 10 AND t.type = 'sell' AND t.status = 'final' THEN TP.amount
+                        ELSE 0 
+                    END), 
+                    '\nCOGS: ', 
+                    SUM(CASE 
+                        WHEN MONTH(t.transaction_date) = 10 AND t.type = 'expense' AND t.status = 'final' AND t.expense_category_id = 6 AND t.expense_sub_category_id = 7 AND TP.is_return = 1 THEN -1 * TP.amount
+                        WHEN MONTH(t.transaction_date) = 10 AND t.type = 'expense' AND t.status = 'final' AND t.expense_category_id = 6 AND t.expense_sub_category_id = 7 THEN TP.amount
+                        ELSE 0 
+                    END),
+                    '\nOe: ', 
+                    SUM(CASE 
+                        WHEN MONTH(t.transaction_date) = 10 AND t.type = 'expense' AND t.status = 'final' AND TP.is_return = 1 THEN -1 * TP.amount
+                        WHEN MONTH(t.transaction_date) = 10 AND t.type = 'expense' AND t.status = 'final' THEN TP.amount
+                        ELSE 0 
+                    END),
+                    '\nex_categories: ',
+                    (SELECT
+                        CASE 
+                            WHEN GROUP_CONCAT(DISTINCT ec.name SEPARATOR ',') IS NULL 
+                            THEN 'cat_empty' 
+                            ELSE GROUP_CONCAT(DISTINCT ec.name SEPARATOR ',') 
+                        END  
+                    FROM expense_categories ec
+                    LEFT JOIN transactions t ON t.expense_category_id = ec.id
+                    WHERE MONTH(t.transaction_date) = 10 AND YEAR(t.transaction_date) = '".$year."' AND t.type = 'expense' AND t.status = 'final')
+                ) AS ".__('report.oct')."_".$year.",
+                CONCAT(
+                    'Revenue: ', 
+                    SUM(CASE 
+                        WHEN MONTH(t.transaction_date) = 11 AND t.type = 'sell' AND t.status = 'final' AND TP.is_return = 1 THEN -1 * TP.amount
+                        WHEN MONTH(t.transaction_date) = 11 AND t.type = 'sell' AND t.status = 'final' THEN TP.amount
+                        ELSE 0 
+                    END), 
+                    '\nCOGS: ', 
+                    SUM(CASE 
+                        WHEN MONTH(t.transaction_date) = 11 AND t.type = 'expense' AND t.status = 'final' AND t.expense_category_id = 6 AND t.expense_sub_category_id = 7 AND TP.is_return = 1 THEN -1 * TP.amount
+                        WHEN MONTH(t.transaction_date) = 11 AND t.type = 'expense' AND t.status = 'final' AND t.expense_category_id = 6 AND t.expense_sub_category_id = 7 THEN TP.amount
+                        ELSE 0 
+                    END),
+                    '\nOe: ', 
+                    SUM(CASE 
+                        WHEN MONTH(t.transaction_date) = 11 AND t.type = 'expense' AND t.status = 'final' AND TP.is_return = 1 THEN -1 * TP.amount
+                        WHEN MONTH(t.transaction_date) = 11 AND t.type = 'expense' AND t.status = 'final' THEN TP.amount
+                        ELSE 0 
+                    END),
+                    '\nex_categories: ',
+                    (SELECT
+                        CASE 
+                            WHEN GROUP_CONCAT(DISTINCT ec.name SEPARATOR ',') IS NULL 
+                            THEN 'cat_empty' 
+                            ELSE GROUP_CONCAT(DISTINCT ec.name SEPARATOR ',') 
+                        END  
+                    FROM expense_categories ec
+                    LEFT JOIN transactions t ON t.expense_category_id = ec.id
+                    WHERE MONTH(t.transaction_date) = 11 AND YEAR(t.transaction_date) = '".$year."' AND t.type = 'expense' AND t.status = 'final')
+                ) AS ".__('report.nov')."_".$year.",
+                CONCAT(
+                    'Revenue: ', 
+                    SUM(CASE 
+                        WHEN MONTH(t.transaction_date) = 12 AND t.type = 'sell' AND t.status = 'final' AND TP.is_return = 1 THEN -1 * TP.amount
+                        WHEN MONTH(t.transaction_date) = 12 AND t.type = 'sell' AND t.status = 'final' THEN TP.amount
+                        ELSE 0 
+                    END), 
+                    '\nCOGS: ', 
+                    SUM(CASE 
+                        WHEN MONTH(t.transaction_date) = 12 AND t.type = 'expense' AND t.status = 'final' AND t.expense_category_id = 6 AND t.expense_sub_category_id = 7 AND TP.is_return = 1 THEN -1 * TP.amount
+                        WHEN MONTH(t.transaction_date) = 12 AND t.type = 'expense' AND t.status = 'final' AND t.expense_category_id = 6 AND t.expense_sub_category_id = 7 THEN TP.amount
+                        ELSE 0 
+                    END),
+                    '\nOe: ', 
+                    SUM(CASE 
+                        WHEN MONTH(t.transaction_date) = 12 AND t.type = 'expense' AND t.status = 'final' AND TP.is_return = 1 THEN -1 * TP.amount
+                        WHEN MONTH(t.transaction_date) = 12 AND t.type = 'expense' AND t.status = 'final' THEN TP.amount
+                        ELSE 0 
+                    END),
+                    '\nex_categories: ',
+                    (SELECT
+                        CASE 
+                            WHEN GROUP_CONCAT(DISTINCT ec.name SEPARATOR ',') IS NULL 
+                            THEN 'cat_empty' 
+                            ELSE GROUP_CONCAT(DISTINCT ec.name SEPARATOR ',') 
+                        END  
+                    FROM expense_categories ec
+                    LEFT JOIN transactions t ON t.expense_category_id = ec.id
+                    WHERE MONTH(t.transaction_date) = 12 AND YEAR(t.transaction_date) = '".$year."' AND t.type = 'expense' AND t.status = 'final')
+                ) AS ".__('report.dec')."_".$year."
+                FROM
+                    transactions AS t
+                LEFT JOIN
+                    transaction_payments AS TP ON TP.transaction_id = t.id
+                WHERE
+                    t.business_id = :business_id
+                    AND YEAR(t.transaction_date) = :year
+                    ", ['business_id' => $business_id, 'year' => $year]);
+           
+            $columns = [
+                        ["data" => __('report.jan')."_".$year, "title" => __('report.jan')." ".$year],
+                        ["data" => __('report.feb')."_".$year, "title" => __('report.feb')." ".$year],
+                        ["data" => __('report.mar')."_".$year, "title" => __('report.mar')." ".$year],
+                        ["data" => __('report.apr')."_".$year, "title" => __('report.apr')." ".$year],
+                        ["data" => __('report.may')."_".$year, "title" => __('report.may')." ".$year],
+                        ["data" => __('report.jun')."_".$year, "title" => __('report.jun')." ".$year],
+                        ["data" => __('report.jul')."_".$year, "title" => __('report.jul')." ".$year],
+                        ["data" => __('report.aug')."_".$year, "title" => __('report.aug')." ".$year],
+                        ["data" => __('report.sep')."_".$year, "title" => __('report.sep')." ".$year],
+                        ["data" => __('report.oct')."_".$year, "title" => __('report.oct')." ".$year],
+                        ["data" => __('report.nov')."_".$year, "title" => __('report.nov')." ".$year],
+                        ["data" => __('report.dec')."_".$year, "title" => __('report.dec')." ".$year]
+                    ];
+                $response = [
+                    'columns' => $columns,
+                    'data' => $data
+                ];
+                return json_encode($response);
+        }
+        
+        return view('report.margin')
+                ->with(compact('users', 'business_locations', 'pos_settings'));
     }
 }

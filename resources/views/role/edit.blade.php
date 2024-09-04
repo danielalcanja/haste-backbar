@@ -1425,6 +1425,14 @@
               </label>
             </div>
           </div>
+          <div class="col-md-12">
+            <div class="checkbox">
+              <label>
+                {!! Form::checkbox('permissions[]', 'margin_report.view', in_array('margin_report.view', $role_permissions), 
+                [ 'class' => 'input-icheck']); !!} {{ __( 'role.margin_report.view' ) }}
+              </label>
+            </div>
+          </div>
         </div>
         </div>
         <hr>

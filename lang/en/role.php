@@ -58,6 +58,7 @@ return [
     'sales_representative.view' => 'View sales representative report',
     'expense_report.view' => 'View expense report',
     'commission_report.view' => 'View commission report',
+    'margin_report.view' => 'View margin report',
 
     'business_settings.access' => 'Access business settings',
     'barcode_settings.access' => 'Access barcode settings',
