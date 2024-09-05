@@ -4824,9 +4824,29 @@ class ReportController extends Controller
                         ["data" => __('report.nov')."_".$year, "title" => __('report.nov')." ".$year],
                         ["data" => __('report.dec')."_".$year, "title" => __('report.dec')." ".$year]
                     ];
+                
+                $ex_cat_data = DB::select("
+                                        SELECT
+                                            ec.name as ec_name,
+                                            SUM(CASE 
+                                                WHEN t.type = 'expense' AND t.status = 'final' AND TP.is_return = 1 THEN -1 * TP.amount
+                                                WHEN t.type = 'expense' AND t.status = 'final' THEN TP.amount
+                                                ELSE 0 
+                                            END) AS ec_total_amount
+                                        FROM transactions t
+                                        INNER JOIN expense_categories ec ON t.expense_category_id = ec.id
+                                        LEFT JOIN transaction_payments AS TP ON TP.transaction_id = t.id
+                                        WHERE YEAR(t.transaction_date) = :year 
+                                        AND t.type = 'expense' 
+                                        AND t.status = 'final'
+                                        AND t.business_id = :business_id
+                                        AND t.payment_status IN ('paid', 'partial')
+                                        GROUP BY t.expense_category_id 
+                                        ",['business_id' => $business_id, 'year' => $year]);
                 $response = [
                     'columns' => $columns,
-                    'data' => $data
+                    'data' => $data,
+                    'ex_cat_data'=>$ex_cat_data
                 ];
                 return json_encode($response);
         }

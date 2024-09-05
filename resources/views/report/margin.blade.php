@@ -108,12 +108,35 @@ function updateMarginReport()
                     dynamicBody.empty(); // Clear any existing rows
 
                     // Create Revenue and COGS rows
-                    var revenueRow = '<tr><td><strong>'+LANG.revenue+'</strong></td>';
-                    var cogsRow = '<tr><td><strong>'+LANG.cogs+'</strong></td>';
-                    var gmRow = '<tr><td><strong>'+LANG.gm+'</strong></td>';
-                    var gmpRow = '<tr><td><strong>'+LANG.gmp+'</strong></td>';
-                    var oetRow = '<tr><td><strong>'+LANG.oes+'</strong></td>';
-                    var oepRow = '<tr><td><strong>'+LANG.oep+'</strong></td>';
+                    var revenueRow = '<tr><td style="min-width: 150px;"><strong>'+LANG.revenue+'</strong></td>';
+                    var cogsRow = '<tr><td style="min-width: 150px;"><strong>'+LANG.cogs+'</strong></td>';
+                    var gmRow = '<tr><td style="min-width: 150px;"><strong>'+LANG.gm+'</strong></td>';
+                    var gmpRow = '<tr><td style="min-width: 150px;"><strong>'+LANG.gmp+'</strong></td>';
+                    var oetRow = '<tr><td style="min-width: 150px;"><strong>'+LANG.oes+'</strong>';
+                    
+                    if(Array.isArray(json.ex_cat_data))
+                    {
+                        const ex_cate_data = json.ex_cat_data;
+                        if (Array.isArray(ex_cate_data) && ex_cate_data.length > 0) {
+                            const excollapseId = 'collapse-ex_cat_data';
+                            const excategoryList = ex_cate_data.map(cat => 
+                                `<li class="list-group-item">${cat.ec_name} <br> ${__currency_trans_from_en(parseFloat(cat.ec_total_amount), true)}</li>`
+                            ).join('');
+
+                            oetRow += ` <span class="no-print">
+                                            <button class="btn btn-link" type="button" data-toggle="collapse" data-target="#${excollapseId}" aria-expanded="false" aria-controls="${excollapseId}">
+                                                Show more
+                                            </button>
+                                            <div class="collapse" id="${excollapseId}">
+                                                <ul class="list-group list-group-unbordered text-left">
+                                                    ${excategoryList}
+                                                </ul>
+                                            </div>
+                                        </span>`;
+                        }
+                    }
+                    oetRow += '</td>';
+                    var oepRow = '<tr><td style="min-width: 150px;"><strong>'+LANG.oep+'</strong></td>';
 
                     json.data.forEach(function(rowData) {
                         json.columns.forEach(function(column) {
@@ -140,22 +163,22 @@ function updateMarginReport()
                                 gmpRow += '<td>' + roundedGmp + '%' + '</td>';
                                 oetRow += '<td>';
                                 oetRow += (oet !== undefined ? __currency_trans_from_en(oet,true) : '');
-                                if(ex_categories != "cat_empty" && oet != null && oet != undefined && !isNaN(oet) && oet !== 0)
-                                {
-                                    // Add collapsible ex_categories
-                                    const collapseId = 'collapse-' + column.data;
-                                    const categoryList = `<ul class="list-group list-group-unbordered text-center">${ex_categories.split(',').map(cat => `<li class="list-group-item">${cat}</li>`).join('')}</ul>`;
-                                    oetRow += `<span class="no-print">
-                                                <button class="btn btn-link" type="button" data-toggle="collapse" data-target="#${collapseId}" aria-expanded="false" aria-controls="${collapseId}">
-                                                    Expense Categories
-                                                </button>
-                                                <div class="collapse" id="${collapseId}">
-                                                    <div class="card card-body">
-                                                        ${categoryList}
-                                                    </div>
-                                                </div>
-                                            </span>`;
-                                }
+                                // if(ex_categories != "cat_empty" && oet != null && oet != undefined && !isNaN(oet) && oet !== 0)
+                                // {
+                                //     // Add collapsible ex_categories
+                                //     const collapseId = 'collapse-' + column.data;
+                                //     const categoryList = `<ul class="list-group list-group-unbordered text-center">${ex_categories.split(',').map(cat => `<li class="list-group-item">${cat}</li>`).join('')}</ul>`;
+                                //     oetRow += `<span class="no-print">
+                                //                 <button class="btn btn-link" type="button" data-toggle="collapse" data-target="#${collapseId}" aria-expanded="false" aria-controls="${collapseId}">
+                                //                     Expense Categories
+                                //                 </button>
+                                //                 <div class="collapse" id="${collapseId}">
+                                //                     <div class="card card-body">
+                                //                         ${categoryList}
+                                //                     </div>
+                                //                 </div>
+                                //             </span>`;
+                                // }
                                 oetRow += '</td>';
                                 oepRow += '<td>' + roundedOep + '%' + '</td>';
 
