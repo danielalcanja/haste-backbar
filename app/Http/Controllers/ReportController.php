@@ -4449,11 +4449,25 @@ class ReportController extends Controller
                         ELSE 0 
                     END), 
                     '\nCOGS: ', 
-                    SUM(CASE 
-                        WHEN MONTH(t.transaction_date) = 1 AND t.type = 'expense' AND t.status = 'final' AND t.expense_category_id = 6 AND t.expense_sub_category_id = 7 AND TP.is_return = 1 THEN -1 * TP.amount
-                        WHEN MONTH(t.transaction_date) = 1 AND t.type = 'expense' AND t.status = 'final' AND t.expense_category_id = 6 AND t.expense_sub_category_id = 7 THEN TP.amount
-                        ELSE 0 
-                    END),
+                    COALESCE
+                    (
+                        (
+                            SELECT 
+                                SUM(((tsl.unit_price_inc_tax * tsl.quantity) - COALESCE(cmsn_agents.discount_amount, 0)) * COALESCE(cmsn_agents.cmmsn_percent, 0) / 100)
+                            FROM
+                                transactions t
+                            LEFT JOIN
+                                transaction_sell_lines tsl ON tsl.transaction_id = t.id
+                            LEFT JOIN
+                                cmsn_agents ON cmsn_agents.transaction_sell_line_id = tsl.id
+                            WHERE
+                                t.type = 'sell'
+                                AND t.status = 'final'
+                                AND t.business_id = '".$business_id."'
+                                AND MONTH(t.transaction_date) = 1
+                                AND YEAR(t.transaction_date) = '".$year."'
+                        ), 0
+                    ),
                     '\nOe: ', 
                     SUM(CASE 
                         WHEN MONTH(t.transaction_date) = 1 AND t.type = 'expense' AND t.status = 'final' AND TP.is_return = 1 THEN -1 * TP.amount
@@ -4462,14 +4476,38 @@ class ReportController extends Controller
                     END),
                     '\nex_categories: ',
                     (SELECT
-                        CASE 
-                            WHEN GROUP_CONCAT(DISTINCT ec.name SEPARATOR ',') IS NULL 
-                            THEN 'cat_empty' 
-                            ELSE GROUP_CONCAT(DISTINCT ec.name SEPARATOR ',') 
-                        END  
-                    FROM expense_categories ec
-                    LEFT JOIN transactions t ON t.expense_category_id = ec.id
-                    WHERE MONTH(t.transaction_date) = 1 AND YEAR(t.transaction_date) = '".$year."' AND t.type = 'expense' AND t.status = 'final')
+                        IFNULL(
+                            GROUP_CONCAT(
+                                CONCAT(
+                                    category_name, 
+                                    '_', 
+                                    total_amount
+                                ) 
+                                SEPARATOR ', '
+                            ),
+                            'cat_empty'
+                        )
+                        FROM (
+                            SELECT
+                                ec.name AS category_name,
+                                COALESCE(SUM(
+                                    CASE 
+                                        WHEN TP.is_return = 1 THEN -1 * TP.amount 
+                                        ELSE TP.amount 
+                                    END
+                                ), 0) AS total_amount
+                            FROM expense_categories ec
+                            LEFT JOIN transactions t ON t.expense_category_id = ec.id
+                            LEFT JOIN transaction_payments TP ON t.id = TP.transaction_id
+                            WHERE MONTH(t.transaction_date) = 1 
+                            AND YEAR(t.transaction_date) = '".$year."' 
+                            AND t.business_id = '".$business_id."'
+                            AND t.type = 'expense' 
+                            AND t.status = 'final'
+                            AND t.payment_status IN ('paid', 'partial')
+                            GROUP BY ec.name
+                        ) AS subquery1
+                    )
                 ) AS ".__('report.jan')."_".$year.",
                 CONCAT(
                     'Revenue: ', 
@@ -4479,11 +4517,25 @@ class ReportController extends Controller
                         ELSE 0 
                     END), 
                     '\nCOGS: ', 
-                    SUM(CASE 
-                        WHEN MONTH(t.transaction_date) = 2 AND t.type = 'expense' AND t.status = 'final' AND t.expense_category_id = 6 AND t.expense_sub_category_id = 7 AND TP.is_return = 1 THEN -1 * TP.amount
-                        WHEN MONTH(t.transaction_date) = 2 AND t.type = 'expense' AND t.status = 'final' AND t.expense_category_id = 6 AND t.expense_sub_category_id = 7 THEN TP.amount
-                        ELSE 0 
-                    END),
+                    COALESCE
+                    (
+                        (
+                            SELECT 
+                                SUM(((tsl.unit_price_inc_tax * tsl.quantity) - COALESCE(cmsn_agents.discount_amount, 0)) * COALESCE(cmsn_agents.cmmsn_percent, 0) / 100)
+                            FROM
+                                transactions t
+                            LEFT JOIN
+                                transaction_sell_lines tsl ON tsl.transaction_id = t.id
+                            LEFT JOIN
+                                cmsn_agents ON cmsn_agents.transaction_sell_line_id = tsl.id
+                            WHERE
+                                t.type = 'sell'
+                                AND t.status = 'final'
+                                AND t.business_id = '".$business_id."'
+                                AND MONTH(t.transaction_date) = 2
+                                AND YEAR(t.transaction_date) = '".$year."'
+                        ), 0
+                    ),
                     '\nOe: ', 
                     SUM(CASE 
                         WHEN MONTH(t.transaction_date) = 2 AND t.type = 'expense' AND t.status = 'final' AND TP.is_return = 1 THEN -1 * TP.amount
@@ -4492,14 +4544,38 @@ class ReportController extends Controller
                     END),
                     '\nex_categories: ',
                     (SELECT
-                        CASE 
-                            WHEN GROUP_CONCAT(DISTINCT ec.name SEPARATOR ',') IS NULL 
-                            THEN 'cat_empty' 
-                            ELSE GROUP_CONCAT(DISTINCT ec.name SEPARATOR ',') 
-                        END  
-                    FROM expense_categories ec
-                    LEFT JOIN transactions t ON t.expense_category_id = ec.id
-                    WHERE MONTH(t.transaction_date) = 2 AND YEAR(t.transaction_date) = '".$year."' AND t.type = 'expense' AND t.status = 'final')
+                        IFNULL(
+                            GROUP_CONCAT(
+                                CONCAT(
+                                    category_name, 
+                                    '_', 
+                                    total_amount
+                                ) 
+                                SEPARATOR ', '
+                            ),
+                            'cat_empty'
+                        )
+                        FROM (
+                            SELECT
+                                ec.name AS category_name,
+                                COALESCE(SUM(
+                                    CASE 
+                                        WHEN TP.is_return = 1 THEN -1 * TP.amount 
+                                        ELSE TP.amount 
+                                    END
+                                ), 0) AS total_amount
+                            FROM expense_categories ec
+                            LEFT JOIN transactions t ON t.expense_category_id = ec.id
+                            LEFT JOIN transaction_payments TP ON t.id = TP.transaction_id
+                            WHERE MONTH(t.transaction_date) = 2 
+                            AND YEAR(t.transaction_date) = '".$year."' 
+                            AND t.business_id = '".$business_id."'
+                            AND t.type = 'expense' 
+                            AND t.status = 'final'
+                            AND t.payment_status IN ('paid', 'partial')
+                            GROUP BY ec.name
+                        ) AS subquery2
+                    )
                 ) AS ".__('report.feb')."_".$year.",
                 CONCAT(
                     'Revenue: ', 
@@ -4509,11 +4585,25 @@ class ReportController extends Controller
                         ELSE 0 
                     END), 
                     '\nCOGS: ', 
-                    SUM(CASE 
-                        WHEN MONTH(t.transaction_date) = 3 AND t.type = 'expense' AND t.status = 'final' AND t.expense_category_id = 6 AND t.expense_sub_category_id = 7 AND TP.is_return = 1 THEN -1 * TP.amount
-                        WHEN MONTH(t.transaction_date) = 3 AND t.type = 'expense' AND t.status = 'final' AND t.expense_category_id = 6 AND t.expense_sub_category_id = 7 THEN TP.amount
-                        ELSE 0 
-                    END),
+                    COALESCE
+                    (
+                        (
+                            SELECT 
+                                SUM(((tsl.unit_price_inc_tax * tsl.quantity) - COALESCE(cmsn_agents.discount_amount, 0)) * COALESCE(cmsn_agents.cmmsn_percent, 0) / 100)
+                            FROM
+                                transactions t
+                            LEFT JOIN
+                                transaction_sell_lines tsl ON tsl.transaction_id = t.id
+                            LEFT JOIN
+                                cmsn_agents ON cmsn_agents.transaction_sell_line_id = tsl.id
+                            WHERE
+                                t.type = 'sell'
+                                AND t.status = 'final'
+                                AND t.business_id = '".$business_id."'
+                                AND MONTH(t.transaction_date) = 3
+                                AND YEAR(t.transaction_date) = '".$year."'
+                        ), 0
+                    ),
                     '\nOe: ', 
                     SUM(CASE 
                         WHEN MONTH(t.transaction_date) = 3 AND t.type = 'expense' AND t.status = 'final' AND TP.is_return = 1 THEN -1 * TP.amount
@@ -4522,14 +4612,38 @@ class ReportController extends Controller
                     END),
                     '\nex_categories: ',
                     (SELECT
-                        CASE 
-                            WHEN GROUP_CONCAT(DISTINCT ec.name SEPARATOR ',') IS NULL 
-                            THEN 'cat_empty' 
-                            ELSE GROUP_CONCAT(DISTINCT ec.name SEPARATOR ',') 
-                        END  
-                    FROM expense_categories ec
-                    LEFT JOIN transactions t ON t.expense_category_id = ec.id
-                    WHERE MONTH(t.transaction_date) = 3 AND YEAR(t.transaction_date) = '".$year."' AND t.type = 'expense' AND t.status = 'final')
+                        IFNULL(
+                            GROUP_CONCAT(
+                                CONCAT(
+                                    category_name, 
+                                    '_', 
+                                    total_amount
+                                ) 
+                                SEPARATOR ', '
+                            ),
+                            'cat_empty'
+                        )
+                        FROM (
+                            SELECT
+                                ec.name AS category_name,
+                                COALESCE(SUM(
+                                    CASE 
+                                        WHEN TP.is_return = 1 THEN -1 * TP.amount 
+                                        ELSE TP.amount 
+                                    END
+                                ), 0) AS total_amount
+                            FROM expense_categories ec
+                            LEFT JOIN transactions t ON t.expense_category_id = ec.id
+                            LEFT JOIN transaction_payments TP ON t.id = TP.transaction_id
+                            WHERE MONTH(t.transaction_date) = 3 
+                            AND YEAR(t.transaction_date) = '".$year."' 
+                            AND t.business_id = '".$business_id."'
+                            AND t.type = 'expense' 
+                            AND t.status = 'final'
+                            AND t.payment_status IN ('paid', 'partial')
+                            GROUP BY ec.name
+                        ) AS subquery3
+                    )
                 ) AS ".__('report.mar')."_".$year.",
                 CONCAT(
                     'Revenue: ', 
@@ -4539,11 +4653,25 @@ class ReportController extends Controller
                         ELSE 0 
                     END), 
                     '\nCOGS: ', 
-                    SUM(CASE 
-                        WHEN MONTH(t.transaction_date) = 4 AND t.type = 'expense' AND t.status = 'final' AND t.expense_category_id = 6 AND t.expense_sub_category_id = 7 AND TP.is_return = 1 THEN -1 * TP.amount
-                        WHEN MONTH(t.transaction_date) = 4 AND t.type = 'expense' AND t.status = 'final' AND t.expense_category_id = 6 AND t.expense_sub_category_id = 7 THEN TP.amount
-                        ELSE 0 
-                    END),
+                    COALESCE
+                    (
+                        (
+                            SELECT 
+                                SUM(((tsl.unit_price_inc_tax * tsl.quantity) - COALESCE(cmsn_agents.discount_amount, 0)) * COALESCE(cmsn_agents.cmmsn_percent, 0) / 100)
+                            FROM
+                                transactions t
+                            LEFT JOIN
+                                transaction_sell_lines tsl ON tsl.transaction_id = t.id
+                            LEFT JOIN
+                                cmsn_agents ON cmsn_agents.transaction_sell_line_id = tsl.id
+                            WHERE
+                                t.type = 'sell'
+                                AND t.status = 'final'
+                                AND t.business_id = '".$business_id."'
+                                AND MONTH(t.transaction_date) = 4
+                                AND YEAR(t.transaction_date) = '".$year."'
+                        ), 0
+                    ),
                     '\nOe: ', 
                     SUM(CASE 
                         WHEN MONTH(t.transaction_date) = 4 AND t.type = 'expense' AND t.status = 'final' AND TP.is_return = 1 THEN -1 * TP.amount
@@ -4552,14 +4680,38 @@ class ReportController extends Controller
                     END),
                     '\nex_categories: ',
                     (SELECT
-                        CASE 
-                            WHEN GROUP_CONCAT(DISTINCT ec.name SEPARATOR ',') IS NULL 
-                            THEN 'cat_empty' 
-                            ELSE GROUP_CONCAT(DISTINCT ec.name SEPARATOR ',') 
-                        END  
-                    FROM expense_categories ec
-                    LEFT JOIN transactions t ON t.expense_category_id = ec.id
-                    WHERE MONTH(t.transaction_date) = 4 AND YEAR(t.transaction_date) = '".$year."' AND t.type = 'expense' AND t.status = 'final')
+                        IFNULL(
+                            GROUP_CONCAT(
+                                CONCAT(
+                                    category_name, 
+                                    '_', 
+                                    total_amount
+                                ) 
+                                SEPARATOR ', '
+                            ),
+                            'cat_empty'
+                        )
+                        FROM (
+                            SELECT
+                                ec.name AS category_name,
+                                COALESCE(SUM(
+                                    CASE 
+                                        WHEN TP.is_return = 1 THEN -1 * TP.amount 
+                                        ELSE TP.amount 
+                                    END
+                                ), 0) AS total_amount
+                            FROM expense_categories ec
+                            LEFT JOIN transactions t ON t.expense_category_id = ec.id
+                            LEFT JOIN transaction_payments TP ON t.id = TP.transaction_id
+                            WHERE MONTH(t.transaction_date) = 4 
+                            AND YEAR(t.transaction_date) = '".$year."' 
+                            AND t.business_id = '".$business_id."'
+                            AND t.type = 'expense' 
+                            AND t.status = 'final'
+                            AND t.payment_status IN ('paid', 'partial')
+                            GROUP BY ec.name
+                        ) AS subquery4
+                    )
                 ) AS ".__('report.apr')."_".$year.",
                 CONCAT(
                     'Revenue: ', 
@@ -4569,11 +4721,25 @@ class ReportController extends Controller
                         ELSE 0 
                     END), 
                     '\nCOGS: ', 
-                    SUM(CASE 
-                        WHEN MONTH(t.transaction_date) = 5 AND t.type = 'expense' AND t.status = 'final' AND t.expense_category_id = 6 AND t.expense_sub_category_id = 7 AND TP.is_return = 1 THEN -1 * TP.amount
-                        WHEN MONTH(t.transaction_date) = 5 AND t.type = 'expense' AND t.status = 'final' AND t.expense_category_id = 6 AND t.expense_sub_category_id = 7 THEN TP.amount
-                        ELSE 0 
-                    END),
+                    COALESCE
+                    (
+                        (
+                            SELECT 
+                                SUM(((tsl.unit_price_inc_tax * tsl.quantity) - COALESCE(cmsn_agents.discount_amount, 0)) * COALESCE(cmsn_agents.cmmsn_percent, 0) / 100)
+                            FROM
+                                transactions t
+                            LEFT JOIN
+                                transaction_sell_lines tsl ON tsl.transaction_id = t.id
+                            LEFT JOIN
+                                cmsn_agents ON cmsn_agents.transaction_sell_line_id = tsl.id
+                            WHERE
+                                t.type = 'sell'
+                                AND t.status = 'final'
+                                AND t.business_id = '".$business_id."'
+                                AND MONTH(t.transaction_date) = 5
+                                AND YEAR(t.transaction_date) = '".$year."'
+                        ), 0
+                    ),
                     '\nOe: ', 
                     SUM(CASE 
                         WHEN MONTH(t.transaction_date) = 5 AND t.type = 'expense' AND t.status = 'final' AND TP.is_return = 1 THEN -1 * TP.amount
@@ -4582,14 +4748,38 @@ class ReportController extends Controller
                     END),
                     '\nex_categories: ',
                     (SELECT
-                        CASE 
-                            WHEN GROUP_CONCAT(DISTINCT ec.name SEPARATOR ',') IS NULL 
-                            THEN 'cat_empty' 
-                            ELSE GROUP_CONCAT(DISTINCT ec.name SEPARATOR ',') 
-                        END  
-                    FROM expense_categories ec
-                    LEFT JOIN transactions t ON t.expense_category_id = ec.id
-                    WHERE MONTH(t.transaction_date) = 5 AND YEAR(t.transaction_date) = '".$year."' AND t.type = 'expense' AND t.status = 'final')
+                        IFNULL(
+                            GROUP_CONCAT(
+                                CONCAT(
+                                    category_name, 
+                                    '_', 
+                                    total_amount
+                                ) 
+                                SEPARATOR ', '
+                            ),
+                            'cat_empty'
+                        )
+                        FROM (
+                            SELECT
+                                ec.name AS category_name,
+                                COALESCE(SUM(
+                                    CASE 
+                                        WHEN TP.is_return = 1 THEN -1 * TP.amount 
+                                        ELSE TP.amount 
+                                    END
+                                ), 0) AS total_amount
+                            FROM expense_categories ec
+                            LEFT JOIN transactions t ON t.expense_category_id = ec.id
+                            LEFT JOIN transaction_payments TP ON t.id = TP.transaction_id
+                            WHERE MONTH(t.transaction_date) = 5 
+                            AND YEAR(t.transaction_date) = '".$year."' 
+                            AND t.business_id = '".$business_id."'
+                            AND t.type = 'expense' 
+                            AND t.status = 'final'
+                            AND t.payment_status IN ('paid', 'partial')
+                            GROUP BY ec.name
+                        ) AS subquery5
+                    )
                 ) AS ".__('report.may')."_".$year.",
                 CONCAT(
                     'Revenue: ', 
@@ -4599,11 +4789,25 @@ class ReportController extends Controller
                         ELSE 0 
                     END), 
                     '\nCOGS: ', 
-                    SUM(CASE 
-                        WHEN MONTH(t.transaction_date) = 6 AND t.type = 'expense' AND t.status = 'final' AND t.expense_category_id = 6 AND t.expense_sub_category_id = 7 AND TP.is_return = 1 THEN -1 * TP.amount
-                        WHEN MONTH(t.transaction_date) = 6 AND t.type = 'expense' AND t.status = 'final' AND t.expense_category_id = 6 AND t.expense_sub_category_id = 7 THEN TP.amount
-                        ELSE 0 
-                    END),
+                    COALESCE
+                    (
+                        (
+                            SELECT 
+                                SUM(((tsl.unit_price_inc_tax * tsl.quantity) - COALESCE(cmsn_agents.discount_amount, 0)) * COALESCE(cmsn_agents.cmmsn_percent, 0) / 100)
+                            FROM
+                                transactions t
+                            LEFT JOIN
+                                transaction_sell_lines tsl ON tsl.transaction_id = t.id
+                            LEFT JOIN
+                                cmsn_agents ON cmsn_agents.transaction_sell_line_id = tsl.id
+                            WHERE
+                                t.type = 'sell'
+                                AND t.status = 'final'
+                                AND t.business_id = '".$business_id."'
+                                AND MONTH(t.transaction_date) = 6
+                                AND YEAR(t.transaction_date) = '".$year."'
+                        ), 0
+                    ),
                     '\nOe: ', 
                     SUM(CASE 
                         WHEN MONTH(t.transaction_date) = 6 AND t.type = 'expense' AND t.status = 'final' AND TP.is_return = 1 THEN -1 * TP.amount
@@ -4612,14 +4816,38 @@ class ReportController extends Controller
                     END),
                     '\nex_categories: ',
                     (SELECT
-                        CASE 
-                            WHEN GROUP_CONCAT(DISTINCT ec.name SEPARATOR ',') IS NULL 
-                            THEN 'cat_empty' 
-                            ELSE GROUP_CONCAT(DISTINCT ec.name SEPARATOR ',') 
-                        END  
-                    FROM expense_categories ec
-                    LEFT JOIN transactions t ON t.expense_category_id = ec.id
-                    WHERE MONTH(t.transaction_date) = 6 AND YEAR(t.transaction_date) = '".$year."' AND t.type = 'expense' AND t.status = 'final')
+                        IFNULL(
+                            GROUP_CONCAT(
+                                CONCAT(
+                                    category_name, 
+                                    '_', 
+                                    total_amount
+                                ) 
+                                SEPARATOR ', '
+                            ),
+                            'cat_empty'
+                        )
+                        FROM (
+                            SELECT
+                                ec.name AS category_name,
+                                COALESCE(SUM(
+                                    CASE 
+                                        WHEN TP.is_return = 1 THEN -1 * TP.amount 
+                                        ELSE TP.amount 
+                                    END
+                                ), 0) AS total_amount
+                            FROM expense_categories ec
+                            LEFT JOIN transactions t ON t.expense_category_id = ec.id
+                            LEFT JOIN transaction_payments TP ON t.id = TP.transaction_id
+                            WHERE MONTH(t.transaction_date) = 6 
+                            AND YEAR(t.transaction_date) = '".$year."' 
+                            AND t.business_id = '".$business_id."'
+                            AND t.type = 'expense' 
+                            AND t.status = 'final'
+                            AND t.payment_status IN ('paid', 'partial')
+                            GROUP BY ec.name
+                        ) AS subquery6
+                    )
                 ) AS ".__('report.jun')."_".$year.",
                 CONCAT(
                     'Revenue: ', 
@@ -4629,11 +4857,25 @@ class ReportController extends Controller
                         ELSE 0 
                     END), 
                     '\nCOGS: ', 
-                    SUM(CASE 
-                        WHEN MONTH(t.transaction_date) = 7 AND t.type = 'expense' AND t.status = 'final' AND t.expense_category_id = 6 AND t.expense_sub_category_id = 7 AND TP.is_return = 1 THEN -1 * TP.amount
-                        WHEN MONTH(t.transaction_date) = 7 AND t.type = 'expense' AND t.status = 'final' AND t.expense_category_id = 6 AND t.expense_sub_category_id = 7 THEN TP.amount
-                        ELSE 0 
-                    END),
+                    COALESCE
+                    (
+                        (
+                            SELECT 
+                                SUM(((tsl.unit_price_inc_tax * tsl.quantity) - COALESCE(cmsn_agents.discount_amount, 0)) * COALESCE(cmsn_agents.cmmsn_percent, 0) / 100)
+                            FROM
+                                transactions t
+                            LEFT JOIN
+                                transaction_sell_lines tsl ON tsl.transaction_id = t.id
+                            LEFT JOIN
+                                cmsn_agents ON cmsn_agents.transaction_sell_line_id = tsl.id
+                            WHERE
+                                t.type = 'sell'
+                                AND t.status = 'final'
+                                AND t.business_id = '".$business_id."'
+                                AND MONTH(t.transaction_date) = 7
+                                AND YEAR(t.transaction_date) = '".$year."'
+                        ), 0
+                    ),
                     '\nOe: ', 
                     SUM(CASE 
                         WHEN MONTH(t.transaction_date) = 7 AND t.type = 'expense' AND t.status = 'final' AND TP.is_return = 1 THEN -1 * TP.amount
@@ -4642,14 +4884,38 @@ class ReportController extends Controller
                     END),
                     '\nex_categories: ',
                     (SELECT
-                        CASE 
-                            WHEN GROUP_CONCAT(DISTINCT ec.name SEPARATOR ',') IS NULL 
-                            THEN 'cat_empty' 
-                            ELSE GROUP_CONCAT(DISTINCT ec.name SEPARATOR ',') 
-                        END  
-                    FROM expense_categories ec
-                    LEFT JOIN transactions t ON t.expense_category_id = ec.id
-                    WHERE MONTH(t.transaction_date) = 7 AND YEAR(t.transaction_date) = '".$year."' AND t.type = 'expense' AND t.status = 'final')
+                        IFNULL(
+                            GROUP_CONCAT(
+                                CONCAT(
+                                    category_name, 
+                                    '_', 
+                                    total_amount
+                                ) 
+                                SEPARATOR ', '
+                            ),
+                            'cat_empty'
+                        )
+                        FROM (
+                            SELECT
+                                ec.name AS category_name,
+                                COALESCE(SUM(
+                                    CASE 
+                                        WHEN TP.is_return = 1 THEN -1 * TP.amount 
+                                        ELSE TP.amount 
+                                    END
+                                ), 0) AS total_amount
+                            FROM expense_categories ec
+                            LEFT JOIN transactions t ON t.expense_category_id = ec.id
+                            LEFT JOIN transaction_payments TP ON t.id = TP.transaction_id
+                            WHERE MONTH(t.transaction_date) = 7 
+                            AND YEAR(t.transaction_date) = '".$year."' 
+                            AND t.business_id = '".$business_id."'
+                            AND t.type = 'expense' 
+                            AND t.status = 'final'
+                            AND t.payment_status IN ('paid', 'partial')
+                            GROUP BY ec.name
+                        ) AS subquery7
+                    )
                 ) AS ".__('report.jul')."_".$year.",
                 CONCAT(
                     'Revenue: ', 
@@ -4659,11 +4925,25 @@ class ReportController extends Controller
                         ELSE 0 
                     END), 
                     '\nCOGS: ', 
-                    SUM(CASE 
-                        WHEN MONTH(t.transaction_date) = 8 AND t.type = 'expense' AND t.status = 'final' AND t.expense_category_id = 6 AND t.expense_sub_category_id = 7 AND TP.is_return = 1 THEN -1 * TP.amount
-                        WHEN MONTH(t.transaction_date) = 8 AND t.type = 'expense' AND t.status = 'final' AND t.expense_category_id = 6 AND t.expense_sub_category_id = 7 THEN TP.amount
-                        ELSE 0 
-                    END),
+                    COALESCE
+                    (
+                        (
+                            SELECT 
+                                SUM(((tsl.unit_price_inc_tax * tsl.quantity) - COALESCE(cmsn_agents.discount_amount, 0)) * COALESCE(cmsn_agents.cmmsn_percent, 0) / 100)
+                            FROM
+                                transactions t
+                            LEFT JOIN
+                                transaction_sell_lines tsl ON tsl.transaction_id = t.id
+                            LEFT JOIN
+                                cmsn_agents ON cmsn_agents.transaction_sell_line_id = tsl.id
+                            WHERE
+                                t.type = 'sell'
+                                AND t.status = 'final'
+                                AND t.business_id = '".$business_id."'
+                                AND MONTH(t.transaction_date) = 8
+                                AND YEAR(t.transaction_date) = '".$year."'
+                        ), 0
+                    ),
                     '\nOe: ', 
                     SUM(CASE 
                         WHEN MONTH(t.transaction_date) = 8 AND t.type = 'expense' AND t.status = 'final' AND TP.is_return = 1 THEN -1 * TP.amount
@@ -4672,14 +4952,38 @@ class ReportController extends Controller
                     END),
                     '\nex_categories: ',
                     (SELECT
-                        CASE 
-                            WHEN GROUP_CONCAT(DISTINCT ec.name SEPARATOR ',') IS NULL 
-                            THEN 'cat_empty' 
-                            ELSE GROUP_CONCAT(DISTINCT ec.name SEPARATOR ',') 
-                        END  
-                    FROM expense_categories ec
-                    LEFT JOIN transactions t ON t.expense_category_id = ec.id
-                    WHERE MONTH(t.transaction_date) = 8 AND YEAR(t.transaction_date) = '".$year."' AND t.type = 'expense' AND t.status = 'final')
+                        IFNULL(
+                            GROUP_CONCAT(
+                                CONCAT(
+                                    category_name, 
+                                    '_', 
+                                    total_amount
+                                ) 
+                                SEPARATOR ', '
+                            ),
+                            'cat_empty'
+                        )
+                        FROM (
+                            SELECT
+                                ec.name AS category_name,
+                                COALESCE(SUM(
+                                    CASE 
+                                        WHEN TP.is_return = 1 THEN -1 * TP.amount 
+                                        ELSE TP.amount 
+                                    END
+                                ), 0) AS total_amount
+                            FROM expense_categories ec
+                            LEFT JOIN transactions t ON t.expense_category_id = ec.id
+                            LEFT JOIN transaction_payments TP ON t.id = TP.transaction_id
+                            WHERE MONTH(t.transaction_date) = 8 
+                            AND YEAR(t.transaction_date) = '".$year."' 
+                            AND t.business_id = '".$business_id."'
+                            AND t.type = 'expense' 
+                            AND t.status = 'final'
+                            AND t.payment_status IN ('paid', 'partial')
+                            GROUP BY ec.name
+                        ) AS subquery8
+                    )
                 ) AS ".__('report.aug')."_".$year.",
                 CONCAT(
                     'Revenue: ', 
@@ -4689,11 +4993,25 @@ class ReportController extends Controller
                         ELSE 0 
                     END), 
                     '\nCOGS: ', 
-                    SUM(CASE 
-                        WHEN MONTH(t.transaction_date) = 9 AND t.type = 'expense' AND t.status = 'final' AND t.expense_category_id = 6 AND t.expense_sub_category_id = 7 AND TP.is_return = 1 THEN -1 * TP.amount
-                        WHEN MONTH(t.transaction_date) = 9 AND t.type = 'expense' AND t.status = 'final' AND t.expense_category_id = 6 AND t.expense_sub_category_id = 7 THEN TP.amount
-                        ELSE 0 
-                    END),
+                    COALESCE
+                    (
+                        (
+                            SELECT 
+                                SUM(((tsl.unit_price_inc_tax * tsl.quantity) - COALESCE(cmsn_agents.discount_amount, 0)) * COALESCE(cmsn_agents.cmmsn_percent, 0) / 100)
+                            FROM
+                                transactions t
+                            LEFT JOIN
+                                transaction_sell_lines tsl ON tsl.transaction_id = t.id
+                            LEFT JOIN
+                                cmsn_agents ON cmsn_agents.transaction_sell_line_id = tsl.id
+                            WHERE
+                                t.type = 'sell'
+                                AND t.status = 'final'
+                                AND t.business_id = '".$business_id."'
+                                AND MONTH(t.transaction_date) = 9
+                                AND YEAR(t.transaction_date) = '".$year."'
+                        ), 0
+                    ),
                     '\nOe: ', 
                     SUM(CASE 
                         WHEN MONTH(t.transaction_date) = 9 AND t.type = 'expense' AND t.status = 'final' AND TP.is_return = 1 THEN -1 * TP.amount
@@ -4702,14 +5020,38 @@ class ReportController extends Controller
                     END),
                     '\nex_categories: ',
                     (SELECT
-                        CASE 
-                            WHEN GROUP_CONCAT(DISTINCT ec.name SEPARATOR ',') IS NULL 
-                            THEN 'cat_empty' 
-                            ELSE GROUP_CONCAT(DISTINCT ec.name SEPARATOR ',') 
-                        END  
-                    FROM expense_categories ec
-                    LEFT JOIN transactions t ON t.expense_category_id = ec.id
-                    WHERE MONTH(t.transaction_date) = 9 AND YEAR(t.transaction_date) = '".$year."' AND t.type = 'expense' AND t.status = 'final')
+                        IFNULL(
+                            GROUP_CONCAT(
+                                CONCAT(
+                                    category_name, 
+                                    '_', 
+                                    total_amount
+                                ) 
+                                SEPARATOR ', '
+                            ),
+                            'cat_empty'
+                        )
+                        FROM (
+                            SELECT
+                                ec.name AS category_name,
+                                COALESCE(SUM(
+                                    CASE 
+                                        WHEN TP.is_return = 1 THEN -1 * TP.amount 
+                                        ELSE TP.amount 
+                                    END
+                                ), 0) AS total_amount
+                            FROM expense_categories ec
+                            LEFT JOIN transactions t ON t.expense_category_id = ec.id
+                            LEFT JOIN transaction_payments TP ON t.id = TP.transaction_id
+                            WHERE MONTH(t.transaction_date) = 9 
+                            AND YEAR(t.transaction_date) = '".$year."' 
+                            AND t.business_id = '".$business_id."'
+                            AND t.type = 'expense' 
+                            AND t.status = 'final'
+                            AND t.payment_status IN ('paid', 'partial')
+                            GROUP BY ec.name
+                        ) AS subquery9
+                    )
                 ) AS ".__('report.sep')."_".$year.",
                 CONCAT(
                     'Revenue: ', 
@@ -4719,11 +5061,25 @@ class ReportController extends Controller
                         ELSE 0 
                     END), 
                     '\nCOGS: ', 
-                    SUM(CASE 
-                        WHEN MONTH(t.transaction_date) = 10 AND t.type = 'expense' AND t.status = 'final' AND t.expense_category_id = 6 AND t.expense_sub_category_id = 7 AND TP.is_return = 1 THEN -1 * TP.amount
-                        WHEN MONTH(t.transaction_date) = 10 AND t.type = 'expense' AND t.status = 'final' AND t.expense_category_id = 6 AND t.expense_sub_category_id = 7 THEN TP.amount
-                        ELSE 0 
-                    END),
+                    COALESCE
+                    (
+                        (
+                            SELECT 
+                                SUM(((tsl.unit_price_inc_tax * tsl.quantity) - COALESCE(cmsn_agents.discount_amount, 0)) * COALESCE(cmsn_agents.cmmsn_percent, 0) / 100)
+                            FROM
+                                transactions t
+                            LEFT JOIN
+                                transaction_sell_lines tsl ON tsl.transaction_id = t.id
+                            LEFT JOIN
+                                cmsn_agents ON cmsn_agents.transaction_sell_line_id = tsl.id
+                            WHERE
+                                t.type = 'sell'
+                                AND t.status = 'final'
+                                AND t.business_id = '".$business_id."'
+                                AND MONTH(t.transaction_date) = 10
+                                AND YEAR(t.transaction_date) = '".$year."'
+                        ), 0
+                    ),
                     '\nOe: ', 
                     SUM(CASE 
                         WHEN MONTH(t.transaction_date) = 10 AND t.type = 'expense' AND t.status = 'final' AND TP.is_return = 1 THEN -1 * TP.amount
@@ -4732,14 +5088,38 @@ class ReportController extends Controller
                     END),
                     '\nex_categories: ',
                     (SELECT
-                        CASE 
-                            WHEN GROUP_CONCAT(DISTINCT ec.name SEPARATOR ',') IS NULL 
-                            THEN 'cat_empty' 
-                            ELSE GROUP_CONCAT(DISTINCT ec.name SEPARATOR ',') 
-                        END  
-                    FROM expense_categories ec
-                    LEFT JOIN transactions t ON t.expense_category_id = ec.id
-                    WHERE MONTH(t.transaction_date) = 10 AND YEAR(t.transaction_date) = '".$year."' AND t.type = 'expense' AND t.status = 'final')
+                        IFNULL(
+                            GROUP_CONCAT(
+                                CONCAT(
+                                    category_name, 
+                                    '_', 
+                                    total_amount
+                                ) 
+                                SEPARATOR ', '
+                            ),
+                            'cat_empty'
+                        )
+                        FROM (
+                            SELECT
+                                ec.name AS category_name,
+                                COALESCE(SUM(
+                                    CASE 
+                                        WHEN TP.is_return = 1 THEN -1 * TP.amount 
+                                        ELSE TP.amount 
+                                    END
+                                ), 0) AS total_amount
+                            FROM expense_categories ec
+                            LEFT JOIN transactions t ON t.expense_category_id = ec.id
+                            LEFT JOIN transaction_payments TP ON t.id = TP.transaction_id
+                            WHERE MONTH(t.transaction_date) = 10 
+                            AND YEAR(t.transaction_date) = '".$year."' 
+                            AND t.business_id = '".$business_id."'
+                            AND t.type = 'expense' 
+                            AND t.status = 'final'
+                            AND t.payment_status IN ('paid', 'partial')
+                            GROUP BY ec.name
+                        ) AS subquery10
+                    )
                 ) AS ".__('report.oct')."_".$year.",
                 CONCAT(
                     'Revenue: ', 
@@ -4749,11 +5129,25 @@ class ReportController extends Controller
                         ELSE 0 
                     END), 
                     '\nCOGS: ', 
-                    SUM(CASE 
-                        WHEN MONTH(t.transaction_date) = 11 AND t.type = 'expense' AND t.status = 'final' AND t.expense_category_id = 6 AND t.expense_sub_category_id = 7 AND TP.is_return = 1 THEN -1 * TP.amount
-                        WHEN MONTH(t.transaction_date) = 11 AND t.type = 'expense' AND t.status = 'final' AND t.expense_category_id = 6 AND t.expense_sub_category_id = 7 THEN TP.amount
-                        ELSE 0 
-                    END),
+                    COALESCE
+                    (
+                        (
+                            SELECT 
+                                SUM(((tsl.unit_price_inc_tax * tsl.quantity) - COALESCE(cmsn_agents.discount_amount, 0)) * COALESCE(cmsn_agents.cmmsn_percent, 0) / 100)
+                            FROM
+                                transactions t
+                            LEFT JOIN
+                                transaction_sell_lines tsl ON tsl.transaction_id = t.id
+                            LEFT JOIN
+                                cmsn_agents ON cmsn_agents.transaction_sell_line_id = tsl.id
+                            WHERE
+                                t.type = 'sell'
+                                AND t.status = 'final'
+                                AND t.business_id = '".$business_id."'
+                                AND MONTH(t.transaction_date) = 11
+                                AND YEAR(t.transaction_date) = '".$year."'
+                        ), 0
+                    ),
                     '\nOe: ', 
                     SUM(CASE 
                         WHEN MONTH(t.transaction_date) = 11 AND t.type = 'expense' AND t.status = 'final' AND TP.is_return = 1 THEN -1 * TP.amount
@@ -4762,14 +5156,38 @@ class ReportController extends Controller
                     END),
                     '\nex_categories: ',
                     (SELECT
-                        CASE 
-                            WHEN GROUP_CONCAT(DISTINCT ec.name SEPARATOR ',') IS NULL 
-                            THEN 'cat_empty' 
-                            ELSE GROUP_CONCAT(DISTINCT ec.name SEPARATOR ',') 
-                        END  
-                    FROM expense_categories ec
-                    LEFT JOIN transactions t ON t.expense_category_id = ec.id
-                    WHERE MONTH(t.transaction_date) = 11 AND YEAR(t.transaction_date) = '".$year."' AND t.type = 'expense' AND t.status = 'final')
+                        IFNULL(
+                            GROUP_CONCAT(
+                                CONCAT(
+                                    category_name, 
+                                    '_', 
+                                    total_amount
+                                ) 
+                                SEPARATOR ', '
+                            ),
+                            'cat_empty'
+                        )
+                        FROM (
+                            SELECT
+                                ec.name AS category_name,
+                                COALESCE(SUM(
+                                    CASE 
+                                        WHEN TP.is_return = 1 THEN -1 * TP.amount 
+                                        ELSE TP.amount 
+                                    END
+                                ), 0) AS total_amount
+                            FROM expense_categories ec
+                            LEFT JOIN transactions t ON t.expense_category_id = ec.id
+                            LEFT JOIN transaction_payments TP ON t.id = TP.transaction_id
+                            WHERE MONTH(t.transaction_date) = 11 
+                            AND YEAR(t.transaction_date) = '".$year."' 
+                            AND t.business_id = '".$business_id."'
+                            AND t.type = 'expense' 
+                            AND t.status = 'final'
+                            AND t.payment_status IN ('paid', 'partial')
+                            GROUP BY ec.name
+                        ) AS subquery11
+                    )
                 ) AS ".__('report.nov')."_".$year.",
                 CONCAT(
                     'Revenue: ', 
@@ -4779,11 +5197,25 @@ class ReportController extends Controller
                         ELSE 0 
                     END), 
                     '\nCOGS: ', 
-                    SUM(CASE 
-                        WHEN MONTH(t.transaction_date) = 12 AND t.type = 'expense' AND t.status = 'final' AND t.expense_category_id = 6 AND t.expense_sub_category_id = 7 AND TP.is_return = 1 THEN -1 * TP.amount
-                        WHEN MONTH(t.transaction_date) = 12 AND t.type = 'expense' AND t.status = 'final' AND t.expense_category_id = 6 AND t.expense_sub_category_id = 7 THEN TP.amount
-                        ELSE 0 
-                    END),
+                    COALESCE
+                    (
+                        (
+                            SELECT 
+                                SUM(((tsl.unit_price_inc_tax * tsl.quantity) - COALESCE(cmsn_agents.discount_amount, 0)) * COALESCE(cmsn_agents.cmmsn_percent, 0) / 100)
+                            FROM
+                                transactions t
+                            LEFT JOIN
+                                transaction_sell_lines tsl ON tsl.transaction_id = t.id
+                            LEFT JOIN
+                                cmsn_agents ON cmsn_agents.transaction_sell_line_id = tsl.id
+                            WHERE
+                                t.type = 'sell'
+                                AND t.status = 'final'
+                                AND t.business_id = '".$business_id."'
+                                AND MONTH(t.transaction_date) = 12
+                                AND YEAR(t.transaction_date) = '".$year."'
+                        ), 0
+                    ),
                     '\nOe: ', 
                     SUM(CASE 
                         WHEN MONTH(t.transaction_date) = 12 AND t.type = 'expense' AND t.status = 'final' AND TP.is_return = 1 THEN -1 * TP.amount
@@ -4792,21 +5224,45 @@ class ReportController extends Controller
                     END),
                     '\nex_categories: ',
                     (SELECT
-                        CASE 
-                            WHEN GROUP_CONCAT(DISTINCT ec.name SEPARATOR ',') IS NULL 
-                            THEN 'cat_empty' 
-                            ELSE GROUP_CONCAT(DISTINCT ec.name SEPARATOR ',') 
-                        END  
-                    FROM expense_categories ec
-                    LEFT JOIN transactions t ON t.expense_category_id = ec.id
-                    WHERE MONTH(t.transaction_date) = 12 AND YEAR(t.transaction_date) = '".$year."' AND t.type = 'expense' AND t.status = 'final')
+                        IFNULL(
+                            GROUP_CONCAT(
+                                CONCAT(
+                                    category_name, 
+                                    '_', 
+                                    total_amount
+                                ) 
+                                SEPARATOR ', '
+                            ),
+                            'cat_empty'
+                        )
+                        FROM (
+                            SELECT
+                                ec.name AS category_name,
+                                COALESCE(SUM(
+                                    CASE 
+                                        WHEN TP.is_return = 1 THEN -1 * TP.amount 
+                                        ELSE TP.amount 
+                                    END
+                                ), 0) AS total_amount
+                            FROM expense_categories ec
+                            LEFT JOIN transactions t ON t.expense_category_id = ec.id
+                            LEFT JOIN transaction_payments TP ON t.id = TP.transaction_id
+                            WHERE MONTH(t.transaction_date) = 12 
+                            AND YEAR(t.transaction_date) = '".$year."' 
+                            AND t.business_id = '".$business_id."'
+                            AND t.type = 'expense' 
+                            AND t.status = 'final'
+                            AND t.payment_status IN ('paid', 'partial')
+                            GROUP BY ec.name
+                        ) AS subquery12
+                    )
                 ) AS ".__('report.dec')."_".$year."
                 FROM
                     transactions AS t
                 LEFT JOIN
                     transaction_payments AS TP ON TP.transaction_id = t.id
-                WHERE
-                    t.business_id = :business_id
+                WHERE t.payment_status IN ('paid', 'partial')
+                    AND t.business_id = :business_id
                     AND YEAR(t.transaction_date) = :year
                     ", ['business_id' => $business_id, 'year' => $year]);
            

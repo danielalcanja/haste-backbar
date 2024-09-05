@@ -142,8 +142,9 @@ LANG = {
     'cogs' : 'COGS (Hair Stylers)',
     'cogs' : 'COGS (Hair Stylers)',
     'gm' : 'Gross Margin',
-    'gmp' : 'GM%',
+    'gmp' : 'Gross Margin (%)',
     'oes' : 'Operating Expenses',
     'oep' : 'Operating Margin',
     'margin_report' : 'Margin Report',
+    'show_more' : 'Show more',
 };

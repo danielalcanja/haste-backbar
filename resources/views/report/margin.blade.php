@@ -125,10 +125,10 @@ function updateMarginReport()
 
                             oetRow += ` <span class="no-print">
                                             <button class="btn btn-link" type="button" data-toggle="collapse" data-target="#${excollapseId}" aria-expanded="false" aria-controls="${excollapseId}">
-                                                Show more
+                                                ${LANG.show_more}
                                             </button>
                                             <div class="collapse" id="${excollapseId}">
-                                                <ul class="list-group list-group-unbordered text-left">
+                                                <ul class="list-group list-group-unbordered text-center">
                                                     ${excategoryList}
                                                 </ul>
                                             </div>
@@ -143,44 +143,53 @@ function updateMarginReport()
                             if (rowData[column.data]) 
                             { 
                                 const values = rowData[column.data].split('\n');
-                                const revenue = parseFloat(values[0].split(': ')[1]);
-                                const cogs = parseFloat(values[1].split(': ')[1]);
+                                const revenue = parseFloat(values[0].split(': ')[1]); //(Total Sales of each month)
+                                const cogs = parseFloat(values[1].split(': ')[1]); // ( Total commission for specific month)
                                 const oe = parseFloat(values[2].split(': ')[1]);
                                 const ex_categories = values[3].split(': ')[1];
 
-                                const gm = revenue - cogs; 
+                                const gm = revenue - cogs; // ( Revenue - COGS )
                                 const rev_cogs = revenue + cogs;
-                                const gmp = (gm*100) / rev_cogs; 
+                                const gmp = (gm*100) / rev_cogs; //  { (Gross Margin*100)/( Revenue + COGS) ) }
                                 const roundedGmp = gmp !== undefined && !isNaN(gmp) ? gmp.toFixed(2) : 0.00;
                                 
-                                const oet = oe - cogs; 
-                                const oep = (oet*100) / oe;
-                                const roundedOep = oep !== undefined && !isNaN(oep) ? oep.toFixed(2) : 0.00;
-
+                                const oet = oe - cogs; // Total cost of expenses - COGS
+                                const oep = gm - oet; // Gross Margin - Operating Expenses Total
+                                
                                 revenueRow += '<td>' + (revenue !== undefined ? __currency_trans_from_en(revenue,true) : '') + '</td>';
                                 cogsRow += '<td>' + (cogs !== undefined ? __currency_trans_from_en(cogs,true) : '') + '</td>';
                                 gmRow += '<td>' + (gm !== undefined ? __currency_trans_from_en(gm,true) : '') + '</td>';
                                 gmpRow += '<td>' + roundedGmp + '%' + '</td>';
                                 oetRow += '<td>';
                                 oetRow += (oet !== undefined ? __currency_trans_from_en(oet,true) : '');
-                                // if(ex_categories != "cat_empty" && oet != null && oet != undefined && !isNaN(oet) && oet !== 0)
-                                // {
-                                //     // Add collapsible ex_categories
-                                //     const collapseId = 'collapse-' + column.data;
-                                //     const categoryList = `<ul class="list-group list-group-unbordered text-center">${ex_categories.split(',').map(cat => `<li class="list-group-item">${cat}</li>`).join('')}</ul>`;
-                                //     oetRow += `<span class="no-print">
-                                //                 <button class="btn btn-link" type="button" data-toggle="collapse" data-target="#${collapseId}" aria-expanded="false" aria-controls="${collapseId}">
-                                //                     Expense Categories
-                                //                 </button>
-                                //                 <div class="collapse" id="${collapseId}">
-                                //                     <div class="card card-body">
-                                //                         ${categoryList}
-                                //                     </div>
-                                //                 </div>
-                                //             </span>`;
-                                // }
+                                if(ex_categories != "cat_empty" && oet != null && oet != undefined && !isNaN(oet) && oet !== 0)
+                                {
+                                    // Add collapsible ex_categories
+                                    const collapseId = 'collapse-' + column.data;
+                                    const categoryList = `<ul class="list-group list-group-unbordered text-center">${ex_categories.split(',').map(cat => {
+                                                                const parts = cat.split('_');
+                                                                if (parts.length === 2)
+                                                                {
+                                                                    return `<li class="list-group-item">${parts[0]}<br>${__currency_trans_from_en(parts[1],true)}</li>`;
+                                                                }
+                                                                else
+                                                                {
+                                                                    return `<li class="list-group-item">${parts.join(' ')}</li>`; 
+                                                                }
+                                                            }).join('')}</ul>`;
+                                    oetRow += `<span class="no-print">
+                                                <button class="btn btn-link" type="button" data-toggle="collapse" data-target="#${collapseId}" aria-expanded="false" aria-controls="${collapseId}">
+                                                    ${LANG.show_more}
+                                                </button>
+                                                <div class="collapse" id="${collapseId}">
+                                                    <div class="card card-body">
+                                                        ${categoryList}
+                                                    </div>
+                                                </div>
+                                            </span>`;
+                                }
                                 oetRow += '</td>';
-                                oepRow += '<td>' + roundedOep + '%' + '</td>';
+                                oepRow += '<td>' + (oep !== undefined ? __currency_trans_from_en(oep,true) : '') + '</td>';
 
                                 
                             } else {
@@ -190,7 +199,7 @@ function updateMarginReport()
                                 gmRow += '<td>'+__currency_trans_from_en(0.00,true)+'</td>';
                                 gmpRow += '<td>0%</td>';
                                 oetRow += '<td>'+__currency_trans_from_en(0.00,true)+'</td>';
-                                oepRow += '<td>0%</td>';
+                                oepRow += '<td>'+__currency_trans_from_en(0.00,true)+'</td>';
                             }
                         });
                     });
@@ -270,6 +279,10 @@ function updateMarginReport()
                                     }
                                 }
                             }
+                        ],
+                        order: [], // Disable default sorting
+                        columnDefs: [
+                            { orderable: false, targets: '_all' } // Disable sorting for all columns
                         ]
                     });
                 } else {
