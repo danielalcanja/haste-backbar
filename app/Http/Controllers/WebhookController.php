@@ -994,7 +994,7 @@ class WebhookController extends Controller
                     'name' => $customer_details['name'],
                     'email' => $customer_details['email'],
                     'contact_id' => $contact_id,
-                    'mobile' => $customer_details['mobile'],
+                    'mobile' => isset($customer_details['mobile']) && !empty($customer_details['mobile']) ? $customer_details['mobile'] : 'empty',
                     'city' => $customer_details['city'],
                     'state' => $customer_details['state'],
                     'country' => $customer_details['country'],
@@ -1183,7 +1183,7 @@ class WebhookController extends Controller
                                 'paid_on' => \Carbon::parse($order['closedAt'])->format('Y-m-d H:i:s'),
                             ];
                         }
-                        else if($order_payments['paymentMeta']['label'] == 'Gift card')
+                        else if($order_payments['paymentMeta']['label'] == 'Gift Card')
                         {
                             $payment[]= [
                                 'amount' => number_format($order_payments['paidAmount'] / 100, 2, '.', ''),
