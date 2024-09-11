@@ -467,7 +467,7 @@ class WebhookImportController extends Controller
             "closedAt < '2024-09-01' AND closedAt >= '2024-08-01'"
             // Add more date ranges as needed
         ];
-        Log::channel('webhookimport')->info("date_range :". json_encode($date_ranges,true));
+        //Log::channel('webhookimport')->info("date_range :". json_encode($date_ranges,true));
         $all_orders = [];
         foreach ($date_ranges as $qstring) {
             $endCursor = null;
