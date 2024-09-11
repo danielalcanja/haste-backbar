@@ -780,7 +780,10 @@ class TransactionUtil extends Util
 
                     for ($i = 1; $i < 8; $i++) {
                         if ($payment['method'] == 'custom_pay_'.$i) {
-                            $payment_data['transaction_no'] = $payment["transaction_no_{$i}"];
+                            if(isset($payment["transaction_no_{$i}"]))
+                            {
+                                $payment_data['transaction_no'] = $payment["transaction_no_{$i}"];
+                            }
                         }
                     }
 

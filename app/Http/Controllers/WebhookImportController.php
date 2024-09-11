@@ -464,36 +464,38 @@ class WebhookImportController extends Controller
     public function fetchAllOrders()
     {
         $date_ranges = [
-            "closedAt < '2024-09-01' AND closedAt >= '2024-08-01'"
-            // Add more date ranges as needed
+            //"closedAt < '2024-04-01' AND closedAt >= '2024-03-01'"
         ];
         //Log::channel('webhookimport')->info("date_range :". json_encode($date_ranges,true));
         $all_orders = [];
-        foreach ($date_ranges as $qstring) {
-            $endCursor = null;
-            do {
-                $response = $this->fetchOrders($endCursor, $qstring);
+        if(!empty($date_ranges))
+        {
+            foreach ($date_ranges as $qstring) {
+                $endCursor = null;
+                do {
+                    $response = $this->fetchOrders($endCursor, $qstring);
 
-                if (isset($response['error'])) {
-                    echo $response['error'] . "\n";
-                    break;
-                }
+                    if (isset($response['error'])) {
+                        echo $response['error'] . "\n";
+                        break;
+                    }
 
-                $orders = $response['data']['orders']['edges'] ?? [];
-                // echo "<pre>";
-                // print_r($orders);
-                // echo "</pre>";
-                if (empty($orders)) {
-                    echo "No orders found for date range: $qstring\n";
-                    break; // Skip to the next date range if no orders are found
-                }
+                    $orders = $response['data']['orders']['edges'] ?? [];
+                    // echo "<pre>";
+                    // print_r($orders);
+                    // echo "</pre>";
+                    if (empty($orders)) {
+                        echo "No orders found for date range: $qstring\n";
+                        break; // Skip to the next date range if no orders are found
+                    }
 
-                // Merge the orders into the main array
-                $all_orders = array_merge($all_orders, $orders);
+                    // Merge the orders into the main array
+                    $all_orders = array_merge($all_orders, $orders);
 
-                $pageInfo = $response['data']['orders']['pageInfo'];
-                $endCursor = $pageInfo['endCursor'];
-            } while ($pageInfo['hasNextPage']);
+                    $pageInfo = $response['data']['orders']['pageInfo'];
+                    $endCursor = $pageInfo['endCursor'];
+                } while ($pageInfo['hasNextPage']);
+            }
         }
 
         return $all_orders;
