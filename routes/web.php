@@ -60,7 +60,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\VariationTemplateController;
 use App\Http\Controllers\WarrantyController;
 use App\Http\Controllers\BoulevardImportDataController;
-//use App\Http\Controllers\WebhookController;
+use App\Http\Controllers\WebhookImportController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -83,7 +83,7 @@ Route::middleware(['setData'])->group(function () {
     Route::get('/', function () {
         return redirect()->route('login');
     });
-    //Route::get('/blvdhook', [WebhookController::class, 'handle']);
+    Route::get('/blvdhookimport', [WebhookImportController::class, 'handle']);
     
     Auth::routes();
 

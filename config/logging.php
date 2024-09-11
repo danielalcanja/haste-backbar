@@ -124,6 +124,12 @@ return [
             'level' => env('LOG_LEVEL', 'debug'),
             'days' => 14,
         ],
+        'webhookimport' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/webhookimport.log'),
+            'level' => env('LOG_LEVEL', 'debug'),
+            'days' => 14,
+        ],
     ],
 
 ];
