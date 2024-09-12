@@ -1566,4 +1566,10 @@ return [
     'rate' => 'Rate',
     'commission' => 'Commission',
     'product' => 'Product',
+    'service_revenue' => 'Service Revenue',
+    'product_revenue' => 'Product Revenue',
+    'total_revenue' => 'Total Revenue',
+    'cogs' => 'COGS',
+    'backbar_expenses' => 'Backbar Expenses',
+    'total_margin' => 'Total Margin',
 ];

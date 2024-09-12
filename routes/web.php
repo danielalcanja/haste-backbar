@@ -311,6 +311,9 @@ Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone', 
     // Margin reports
     Route::get('/reports/margin-report', [ReportController::class, 'getMarginReport']);
 
+    // Weekly reports
+    Route::get('/reports/weekly-margin-report', [ReportController::class, 'getWeeklyMarginReport'])->name('weekly-margin.report');
+
     Route::get('business-location/activate-deactivate/{location_id}', [BusinessLocationController::class, 'activateDeactivateLocation']);
 
     //Business Location Settings...

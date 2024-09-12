@@ -93,4 +93,6 @@ return [
     'oct' => 'Oct',
     'nov' => 'Nov',
     'dec' => 'Dec',
+    'select_a_month' => 'Select Month',
+    'weekly-margin' => 'Revenue & Cost report',
 ];

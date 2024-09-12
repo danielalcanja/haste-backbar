@@ -5310,4 +5310,85 @@ class ReportController extends Controller
         return view('report.margin')
                 ->with(compact('users', 'business_locations', 'pos_settings'));
     }
+
+     /**
+     * Shows weekly margin report
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function getWeeklyMarginReport(Request $request)
+    {
+        if (! auth()->user()->can('weekly_margin_report.view')) {
+            abort(403, 'Unauthorized action.');
+        }
+        $year = $request->get('year', date('Y')); // Get the selected year or default to the current year
+        $month = $request->get('month', date('m')); // Get the selected month or default to the current month
+        $business_id = $request->session()->get('user.business_id');
+        $results = DB::select("
+            SELECT 
+                DATE_FORMAT(DATE_SUB(t.transaction_date, INTERVAL (WEEKDAY(t.transaction_date)) DAY), '%m/%d/%Y') AS week_start_date,
+                SUM(CASE 
+                    WHEN t.type = 'sell' AND t.status = 'final' THEN ((tslm.quantity - tslm.quantity_returned) * (tslm.unit_price_inc_tax - tslm.line_discount_amount_blvd))
+                    ELSE 0 
+                END) AS revenue,
+                SUM(CASE 
+                    WHEN t.type = 'sell' AND t.status = 'final' AND p.ptype = 'service' THEN ((tslm.quantity - tslm.quantity_returned) * (tslm.unit_price_inc_tax - tslm.line_discount_amount_blvd))
+                    ELSE 0 
+                END) AS s_revenue,
+                SUM(CASE 
+                    WHEN t.type = 'sell' AND t.status = 'final' AND (p.ptype IS NULL OR p.ptype != 'service') THEN ((tslm.quantity - tslm.quantity_returned) * (tslm.unit_price_inc_tax - tslm.line_discount_amount_blvd))
+                    ELSE 0 
+                END) AS p_revenue,
+                COALESCE
+                (
+                    (SELECT 
+                        SUM(((tsl.unit_price_inc_tax * tsl.quantity) - COALESCE(cmsn_agents.discount_amount, 0)) * COALESCE(cmsn_agents.cmmsn_percent, 0) / 100)
+                        FROM transactions t_inner
+                        LEFT JOIN transaction_sell_lines tsl ON tsl.transaction_id = t_inner.id
+                        LEFT JOIN cmsn_agents ON cmsn_agents.transaction_sell_line_id = tsl.id
+                        WHERE t_inner.type = 'sell'
+                        AND t_inner.status = 'final'
+                        AND t_inner.business_id = '".$business_id."'
+                        AND DATE_FORMAT(DATE_SUB(t_inner.transaction_date, INTERVAL (WEEKDAY(t_inner.transaction_date)) DAY), '%Y-%m-%d') = DATE_FORMAT(DATE_SUB(t.transaction_date, INTERVAL (WEEKDAY(t.transaction_date)) DAY), '%Y-%m-%d')
+                        AND YEAR(t_inner.transaction_date) = '".$year."'
+                        AND MONTH(t_inner.transaction_date) = '".$month."'
+                    )
+                ) AS cogs
+            FROM
+                transactions AS t
+            INNER JOIN 
+                transaction_sell_lines tslm ON tslm.transaction_id = t.id
+            LEFT JOIN 
+                products p ON p.id = tslm.product_id
+            WHERE
+                t.business_id = :business_id
+                AND YEAR(t.transaction_date) = :year
+                AND MONTH(t.transaction_date) = :month
+            GROUP BY week_start_date
+            ORDER BY week_start_date DESC
+        ", ['business_id' => $business_id, 'year' => $year, 'month' => $month]);
+
+        // Prepare data for display and pagination
+        $data = ['weeks' => [], 'revenue' => [], 's_revenue' => [], 'p_revenue' => [], 'cogs' => []];
+        foreach ($results as $row) {
+            $data['weeks'][] = $row->week_start_date;
+            $data['revenue'][] = $row->revenue;
+            $data['s_revenue'][] = $row->s_revenue;
+            $data['p_revenue'][] = $row->p_revenue;
+            $data['cogs'][] = $row->cogs;
+            $data['total_margin'][] = $row->revenue - $row->cogs;
+        }
+        
+        $pages = array_chunk($data['weeks'], 8);
+        $pageNumber = $request->get('page', 1);
+        $currentPageWeeks = $pages[$pageNumber - 1] ?? [];
+        $currentPageRevenue = array_slice($data['revenue'], ($pageNumber - 1) * 8, 8);
+        $currentPageCogs = array_slice($data['cogs'], ($pageNumber - 1) * 8, 8);
+        $currentPageServiceRevenue = array_slice($data['s_revenue'], ($pageNumber - 1) * 8, 8);
+        $currentPageProductRevenue = array_slice($data['p_revenue'], ($pageNumber - 1) * 8, 8);
+        $currentPageTotalMargin = array_slice($data['total_margin'], ($pageNumber - 1) * 8, 8);
+
+        return view('report.weekly-margin', compact('currentPageWeeks', 'currentPageRevenue', 'currentPageServiceRevenue', 'currentPageProductRevenue', 'currentPageCogs', 'currentPageTotalMargin', 'pageNumber', 'pages', 'year', 'month'));
+    }
+
 }

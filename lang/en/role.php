@@ -59,6 +59,7 @@ return [
     'expense_report.view' => 'View expense report',
     'commission_report.view' => 'View commission report',
     'margin_report.view' => 'View margin report',
+    'weekly_margin_report.view' => 'View revenue & cost report',
 
     'business_settings.access' => 'Access business settings',
     'barcode_settings.access' => 'Access barcode settings',
