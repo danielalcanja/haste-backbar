@@ -89,6 +89,12 @@
                                         <td><span class="display_currency" data-currency_symbol="true">{{ $total_margin }}</span></td>
                                     @endforeach
                                 </tr>
+                                <tr>
+                                    <td><b>@lang('lang_v1.total_margin_percentage')</b></td>
+                                    @foreach($currentPageTotalMarginPercentage as $total_margin_percentage)
+                                        <td>{{@num_format($total_margin_percentage)}} %</td>
+                                    @endforeach
+                                </tr>
                             </tbody>
                         </table>
 

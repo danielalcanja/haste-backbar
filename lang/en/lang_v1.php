@@ -1572,4 +1572,5 @@ return [
     'cogs' => 'COGS',
     'backbar_expenses' => 'Backbar Expenses',
     'total_margin' => 'Total Margin',
+    'total_margin_percentage' => 'Total Margin (%)',
 ];

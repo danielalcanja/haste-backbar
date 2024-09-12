@@ -5369,7 +5369,7 @@ class ReportController extends Controller
         ", ['business_id' => $business_id, 'year' => $year, 'month' => $month]);
 
         // Prepare data for display and pagination
-        $data = ['weeks' => [], 'revenue' => [], 's_revenue' => [], 'p_revenue' => [], 'cogs' => []];
+        $data = ['weeks' => [], 'revenue' => [], 's_revenue' => [], 'p_revenue' => [], 'cogs' => [] , 'total_margin' => [] , 'total_margin_percentage' => []];
         foreach ($results as $row) {
             $data['weeks'][] = $row->week_start_date;
             $data['revenue'][] = $row->revenue;
@@ -5377,8 +5377,11 @@ class ReportController extends Controller
             $data['p_revenue'][] = $row->p_revenue;
             $data['cogs'][] = $row->cogs;
             $data['total_margin'][] = $row->revenue - $row->cogs;
+            $data['total_margin_percentage'][] = ((($row->revenue - $row->cogs)*100)/($row->revenue + $row->cogs));
         }
-        
+        // echo "<pre>";
+        // print_r($data);
+        // exit;
         $pages = array_chunk($data['weeks'], 8);
         $pageNumber = $request->get('page', 1);
         $currentPageWeeks = $pages[$pageNumber - 1] ?? [];
@@ -5387,8 +5390,9 @@ class ReportController extends Controller
         $currentPageServiceRevenue = array_slice($data['s_revenue'], ($pageNumber - 1) * 8, 8);
         $currentPageProductRevenue = array_slice($data['p_revenue'], ($pageNumber - 1) * 8, 8);
         $currentPageTotalMargin = array_slice($data['total_margin'], ($pageNumber - 1) * 8, 8);
+        $currentPageTotalMarginPercentage = array_slice($data['total_margin_percentage'], ($pageNumber - 1) * 8, 8);
 
-        return view('report.weekly-margin', compact('currentPageWeeks', 'currentPageRevenue', 'currentPageServiceRevenue', 'currentPageProductRevenue', 'currentPageCogs', 'currentPageTotalMargin', 'pageNumber', 'pages', 'year', 'month'));
+        return view('report.weekly-margin', compact('currentPageWeeks', 'currentPageRevenue', 'currentPageServiceRevenue', 'currentPageProductRevenue', 'currentPageCogs', 'currentPageTotalMargin', 'currentPageTotalMarginPercentage', 'pageNumber', 'pages', 'year', 'month'));
     }
 
 }
