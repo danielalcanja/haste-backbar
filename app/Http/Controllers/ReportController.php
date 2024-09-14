@@ -5326,47 +5326,72 @@ class ReportController extends Controller
         $business_id = $request->session()->get('user.business_id');
         $results = DB::select("
             SELECT 
-                DATE_FORMAT(DATE_SUB(t.transaction_date, INTERVAL (WEEKDAY(t.transaction_date)) DAY), '%m/%d/%Y') AS week_start_date,
-                SUM(CASE 
-                    WHEN t.type = 'sell' AND t.status = 'final' THEN ((tslm.quantity - tslm.quantity_returned) * (tslm.unit_price_inc_tax - tslm.line_discount_amount_blvd))
-                    ELSE 0 
-                END) AS revenue,
-                SUM(CASE 
-                    WHEN t.type = 'sell' AND t.status = 'final' AND p.ptype = 'service' THEN ((tslm.quantity - tslm.quantity_returned) * (tslm.unit_price_inc_tax - tslm.line_discount_amount_blvd))
-                    ELSE 0 
-                END) AS s_revenue,
-                SUM(CASE 
-                    WHEN t.type = 'sell' AND t.status = 'final' AND (p.ptype IS NULL OR p.ptype != 'service') THEN ((tslm.quantity - tslm.quantity_returned) * (tslm.unit_price_inc_tax - tslm.line_discount_amount_blvd))
-                    ELSE 0 
-                END) AS p_revenue,
-                COALESCE
-                (
-                    (SELECT 
-                        SUM(((tsl.unit_price_inc_tax * tsl.quantity) - COALESCE(cmsn_agents.discount_amount, 0)) * COALESCE(cmsn_agents.cmmsn_percent, 0) / 100)
-                        FROM transactions t_inner
-                        LEFT JOIN transaction_sell_lines tsl ON tsl.transaction_id = t_inner.id
-                        LEFT JOIN cmsn_agents ON cmsn_agents.transaction_sell_line_id = tsl.id
-                        WHERE t_inner.type = 'sell'
-                        AND t_inner.status = 'final'
-                        AND t_inner.business_id = '".$business_id."'
-                        AND DATE_FORMAT(DATE_SUB(t_inner.transaction_date, INTERVAL (WEEKDAY(t_inner.transaction_date)) DAY), '%Y-%m-%d') = DATE_FORMAT(DATE_SUB(t.transaction_date, INTERVAL (WEEKDAY(t.transaction_date)) DAY), '%Y-%m-%d')
-                        AND YEAR(t_inner.transaction_date) = '".$year."'
-                        AND MONTH(t_inner.transaction_date) = '".$month."'
-                    )
-                ) AS cogs
-            FROM
-                transactions AS t
-            INNER JOIN 
-                transaction_sell_lines tslm ON tslm.transaction_id = t.id
-            LEFT JOIN 
-                products p ON p.id = tslm.product_id
-            WHERE
-                t.business_id = :business_id
-                AND YEAR(t.transaction_date) = :year
-                AND MONTH(t.transaction_date) = :month
-            GROUP BY week_start_date
-            ORDER BY week_start_date DESC
-        ", ['business_id' => $business_id, 'year' => $year, 'month' => $month]);
+                t.week_start_date,
+                t.revenue,
+                t.s_revenue,
+                t.p_revenue,
+                t.cogs,
+                e.total_hourly_payment
+            FROM (
+                SELECT 
+                    DATE_FORMAT(DATE_SUB(t.transaction_date, INTERVAL (WEEKDAY(t.transaction_date)) DAY), '%m/%d/%Y') AS week_start_date,
+                    SUM(CASE 
+                        WHEN t.type = 'sell' AND t.status = 'final' THEN ((tslm.quantity - tslm.quantity_returned) * (tslm.unit_price_inc_tax - tslm.line_discount_amount_blvd))
+                        ELSE 0 
+                    END) AS revenue,
+                    SUM(CASE 
+                        WHEN t.type = 'sell' AND t.status = 'final' AND p.ptype = 'service' THEN ((tslm.quantity - tslm.quantity_returned) * (tslm.unit_price_inc_tax - tslm.line_discount_amount_blvd))
+                        ELSE 0 
+                    END) AS s_revenue,
+                    SUM(CASE 
+                        WHEN t.type = 'sell' AND t.status = 'final' AND (p.ptype IS NULL OR p.ptype != 'service') THEN ((tslm.quantity - tslm.quantity_returned) * (tslm.unit_price_inc_tax - tslm.line_discount_amount_blvd))
+                        ELSE 0 
+                    END) AS p_revenue,
+                    COALESCE
+                    (
+                        (SELECT 
+                            SUM(((tsl.unit_price_inc_tax * tsl.quantity) - COALESCE(cmsn_agents.discount_amount, 0)) * COALESCE(cmsn_agents.cmmsn_percent, 0) / 100)
+                            FROM transactions t_inner
+                            LEFT JOIN transaction_sell_lines tsl ON tsl.transaction_id = t_inner.id
+                            LEFT JOIN cmsn_agents ON cmsn_agents.transaction_sell_line_id = tsl.id
+                            WHERE t_inner.type = 'sell'
+                            AND t_inner.status = 'final'
+                            AND t_inner.business_id = '".$business_id."'
+                            AND DATE_FORMAT(DATE_SUB(t_inner.transaction_date, INTERVAL (WEEKDAY(t_inner.transaction_date)) DAY), '%Y-%m-%d') = DATE_FORMAT(DATE_SUB(t.transaction_date, INTERVAL (WEEKDAY(t.transaction_date)) DAY), '%Y-%m-%d')
+                            AND YEAR(t_inner.transaction_date) = '".$year."'
+                            AND MONTH(t_inner.transaction_date) = '".$month."'
+                        )
+                    ) AS cogs
+                FROM
+                    transactions AS t
+                INNER JOIN 
+                    transaction_sell_lines tslm ON tslm.transaction_id = t.id
+                LEFT JOIN 
+                    products p ON p.id = tslm.product_id
+                WHERE
+                    t.business_id = '".$business_id."'
+                    AND YEAR(t.transaction_date) = '".$year."'
+                    AND MONTH(t.transaction_date) = '".$month."'
+                GROUP BY week_start_date
+            ) t
+            LEFT JOIN (
+                SELECT 
+                    DATE_FORMAT(DATE_SUB(ea.clock_in_time, INTERVAL (WEEKDAY(ea.clock_in_time)) DAY), '%m/%d/%Y') AS week_start_date,
+                    SUM(TIMESTAMPDIFF(HOUR, ea.clock_in_time, ea.clock_out_time)) * u.hourly_rate AS total_hourly_payment
+                FROM 
+                    essentials_attendances ea
+                LEFT JOIN 
+                    users u ON u.id = ea.user_id
+                WHERE 
+                    ea.business_id = '".$business_id."'
+                    AND YEAR(ea.clock_in_time) = '".$year."'
+                    AND MONTH(ea.clock_in_time) = '".$month."'
+                    AND ea.clock_in_time IS NOT NULL
+                    AND ea.clock_out_time IS NOT NULL
+                GROUP BY week_start_date
+            ) e ON t.week_start_date = e.week_start_date
+            ORDER BY t.week_start_date DESC
+        ");
 
         // Prepare data for display and pagination
         $data = ['weeks' => [], 'revenue' => [], 's_revenue' => [], 'p_revenue' => [], 'cogs' => [] , 'total_margin' => [] , 'total_margin_percentage' => []];
@@ -5375,7 +5400,7 @@ class ReportController extends Controller
             $data['revenue'][] = $row->revenue;
             $data['s_revenue'][] = $row->s_revenue;
             $data['p_revenue'][] = $row->p_revenue;
-            $data['cogs'][] = $row->cogs;
+            $data['cogs'][] = $row->cogs + $row->total_hourly_payment;
             $data['total_margin'][] = $row->revenue - $row->cogs;
             $data['total_margin_percentage'][] = ((($row->revenue - $row->cogs)/$row->revenue)*100);
         }
