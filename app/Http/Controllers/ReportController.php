@@ -5377,7 +5377,7 @@ class ReportController extends Controller
             LEFT JOIN (
                 SELECT 
                     DATE_FORMAT(DATE_SUB(ea.clock_in_time, INTERVAL (WEEKDAY(ea.clock_in_time)) DAY), '%m/%d/%Y') AS week_start_date,
-                    SUM(TIMESTAMPDIFF(HOUR, ea.clock_in_time, ea.clock_out_time)) * u.hourly_rate AS total_hourly_payment
+                    (SUM(TIMESTAMPDIFF(HOUR, ea.clock_in_time, ea.clock_out_time)) + SUM(TIMESTAMPDIFF(MINUTE, ea.clock_in_time, ea.clock_out_time) % 60) / 60) * u.hourly_rate AS total_hourly_payment
                 FROM 
                     essentials_attendances ea
                 LEFT JOIN 
