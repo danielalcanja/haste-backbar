@@ -171,6 +171,13 @@
 
             <div class="col-md-4">
                 <div class="form-group">
+                  {!! Form::label('hourly_rate', __( 'lang_v1.hourly_rate' ) . ':') !!}
+                    {!! Form::text('hourly_rate', !empty($user->hourly_rate) ? @num_format($user->hourly_rate) : 0, ['class' => 'form-control input_number', 'placeholder' => __( 'lang_v1.hourly_rate' )]); !!}
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="form-group">
                   {!! Form::label('max_sales_discount_percent', __( 'lang_v1.max_sales_discount_percent' ) . ':') !!} @show_tooltip(__('lang_v1.max_sales_discount_percent_help'))
                     {!! Form::text('max_sales_discount_percent', !is_null($user->max_sales_discount_percent) ? @num_format($user->max_sales_discount_percent) : null, ['class' => 'form-control input_number', 'placeholder' => __( 'lang_v1.max_sales_discount_percent' ) ]); !!}
                 </div>

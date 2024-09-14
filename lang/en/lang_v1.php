@@ -1573,4 +1573,5 @@ return [
     'backbar_expenses' => 'Backbar Expenses',
     'total_margin' => 'Total Margin',
     'total_margin_percentage' => 'Total Margin (%)',
+    'hourly_rate' => 'Hourly Rate',
 ];

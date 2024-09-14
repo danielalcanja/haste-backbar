@@ -90,13 +90,18 @@
                         <div class="tab-pane active" id="user_info_tab">
                             <div class="row">
                                 <div class="col-md-12">
-                                    <div class="col-md-3">
+                                    <div class="col-md-4">
                                             <p><strong>@lang( 'lang_v1.cmmsn_percent' ): </strong> {{$user->cmmsn_percent}}%</p>
                                     </div>
-                                    <div class="col-md-3">
+                                    <div class="col-md-4">
                                             <p><strong>@lang( 'lang_v1.product_cmmsn_percent' ): </strong> {{$user->product_cmmsn_percent}}%</p>
                                     </div>
-                                    <div class="col-md-6">
+                                    <div class="col-md-4">
+                                            <p><strong>@lang( 'lang_v1.hourly_rate' ): </strong> <span class="display_currency" data-currency_symbol="true">{{$user->hourly_rate}}</span></p>
+                                    </div>
+                                </div>
+                                <div class="col-md-12">
+                                    <div class="col-md-4">
                                         @php
                                             $selected_contacts = ''
                                         @endphp
