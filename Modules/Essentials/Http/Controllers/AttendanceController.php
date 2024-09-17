@@ -118,7 +118,8 @@ class AttendanceController extends Controller
                         return $html;
                     })
                     ->editColumn('clock_in', function ($row) {
-                        $html = $this->moduleUtil->format_date($row->clock_in_time, true);
+                        //$html = $this->moduleUtil->format_date($row->clock_in_time, true);
+                        $html = \Carbon::createFromTimestamp(strtotime($row->clock_in_time))->format('m/d/Y h:i A');
                         if (! empty($row->clock_in_location)) {
                             $html .= '<br>'.$row->clock_in_location.'<br>';
                         }
@@ -130,7 +131,8 @@ class AttendanceController extends Controller
                         return $html;
                     })
                     ->editColumn('clock_out', function ($row) {
-                        $html = $this->moduleUtil->format_date($row->clock_out_time, true);
+                        //$html = $this->moduleUtil->format_date($row->clock_out_time, true);
+                        $html = \Carbon::createFromTimestamp(strtotime($row->clock_out_time))->format('m/d/Y h:i A');
                         if (! empty($row->clock_out_location)) {
                             $html .= '<br>'.$row->clock_out_location.'<br>';
                         }

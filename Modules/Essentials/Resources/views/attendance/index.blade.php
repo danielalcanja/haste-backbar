@@ -260,6 +260,15 @@
                 e.preventDefault();
                 if($(this).valid()) {
                     $(this).find('button[type="submit"]').attr('disabled', true);
+                    $('.date_time_picker').each(function() {
+                        var rawClockTime = $(this).val();
+
+                        // Convert from 12-hour format to 24-hour format using moment.js
+                        var formattedClockTime = moment(rawClockTime, 'MM/DD/YYYY HH:mm A').format('MM/DD/YYYY HH:mm');  // 24-hour format
+
+                        // Update the input field with the correctly formatted value (24-hour format)
+                        $(this).val(formattedClockTime);
+                    });
                     var data = $(this).serialize();
                     $.ajax({
                         method: $(this).attr('method'),
@@ -607,7 +616,7 @@
                 success: function(result) {
                     $('table#employee_attendance_table tbody').append(result);
                     var tr = $('table#employee_attendance_table tbody tr:last');
-
+                    let moment_time_format = 'HH:mm A';  
                     tr.find('.date_time_picker').each( function(){
                         $(this).datetimepicker({
                             format: moment_date_format + ' ' + moment_time_format,
