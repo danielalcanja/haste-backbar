@@ -315,4 +315,5 @@ return [
     'days_present' => 'Days Present',
     'days_absent' => 'Days Absent',
     'attendace_report_for' => 'Attendance Report for',
+    'total_hourly_payment' => 'Hourly Paid',
 ];

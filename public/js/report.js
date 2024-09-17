@@ -1681,6 +1681,79 @@ $(document).ready(function() {
             updateCommissionReport();
         });
     }
+
+    // time clock report
+    if ($('#time_clock_date_filter').length == 1) {
+        //date range setting
+        $('input#time_clock_date_filter').daterangepicker(dateRangeSettings, function(start, end) {
+            $('input#time_clock_date_filter').val(
+                start.format(moment_date_format) + ' ~ ' + end.format(moment_date_format)
+            );
+            updateTimeClockReport();
+        });
+        $('input#time_clock_date_filter').on('apply.daterangepicker', function(ev, picker) {
+            $(this).val(
+                picker.startDate.format(moment_date_format) +
+                    ' ~ ' +
+                    picker.endDate.format(moment_date_format)
+            );
+        });
+    
+        $('input#time_clock_date_filter').on('cancel.daterangepicker', function(ev, picker) {
+            $(this).val('');
+        });
+        
+        time_clock_report = $('table#time_clock_report').DataTable({
+            processing: true,
+            serverSide: true,
+            fixedHeader:false,
+            aaSorting: [[0, 'desc']],
+            ajax: {
+                url: '/reports/time-clock-report',
+                data: function(d) {
+                    var start = $('input#time_clock_date_filter')
+                        .data('daterangepicker')
+                        .startDate.format('YYYY-MM-DD');
+                    var end = $('input#time_clock_date_filter')
+                        .data('daterangepicker')
+                        .endDate.format('YYYY-MM-DD');
+    
+                    (d.created_by = $('select#time_clock_id').val()),
+                        (d.location_id = $('select#time_clock_business_id').val()),
+                        (d.start_date = start),
+                        (d.end_date = end);
+                },
+            },
+            columns: [
+                { data: 'date', name: 'clock_in_time' },
+                { data: 'user', name: 'user' },
+                { data: 'hourly_rate', name: 'u.hourly_rate' },
+                { data: 'clock_in', name: 'clock_in', orderable: false, searchable: false},
+                { data: 'clock_out', name: 'clock_out', orderable: false, searchable: false},
+                { data: 'work_duration', name: 'work_duration', orderable: false, searchable: false},
+                { data: 'total_hourly_payment', name: 'total_hourly_payment', orderable: false, searchable: false},
+            ],
+            fnDrawCallback: function(oSettings) {
+                let totalDuration = 0;
+                $('#time_clock_report tbody .work-duration').each(function() {
+                    totalDuration += parseFloat($(this).data('duration')) || 0;
+                });
+                let hours = Math.floor(totalDuration / 60);
+                let minutes = totalDuration % 60;
+                $('#time_clock_footer_total_duration').text(hours + 'h ' + minutes + 'm');
+
+                $('#time_clock_footer_total_payment').text(
+                    sum_table_col($('#time_clock_report'), 'total-hourly-payment')
+                );
+                __currency_convert_recursively($('#time_clock_report'));
+            },
+        });
+
+        //Commission filter
+        $('select#time_clock_id, select#time_clock_business_id').change(function() {
+            updateTimeClockReport();
+        });
+    }
 });
 
 //Commission report
@@ -1688,6 +1761,11 @@ function updateCommissionReport() {
     cmmsn_summary_report.ajax.reload();
     cmmsn_services_report.ajax.reload();
     cmmsn_products_report.ajax.reload();
+}
+
+//time report
+function updateTimeClockReport() {
+    time_clock_report.ajax.reload();
 }
 
 function updatePurchaseSell() {

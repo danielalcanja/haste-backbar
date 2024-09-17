@@ -95,4 +95,5 @@ return [
     'dec' => 'Dec',
     'select_a_month' => 'Select Month',
     'weekly-margin' => 'Revenue & Cost report',
+    'time_clock' => 'Time Clock report',
 ];

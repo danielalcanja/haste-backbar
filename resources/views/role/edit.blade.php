@@ -1441,6 +1441,14 @@
               </label>
             </div>
           </div>
+          <div class="col-md-12">
+            <div class="checkbox">
+              <label>
+                {!! Form::checkbox('permissions[]', 'time_clock_report.view', in_array('time_clock_report.view', $role_permissions), 
+                [ 'class' => 'input-icheck']); !!} {{ __( 'role.time_clock_report.view' ) }}
+              </label>
+            </div>
+          </div>
         </div>
         </div>
         <hr>

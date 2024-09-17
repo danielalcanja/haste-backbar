@@ -31,6 +31,7 @@ use DB;
 use Illuminate\Http\Request;
 use Spatie\Activitylog\Models\Activity;
 use App\CmsnAgent;
+use Modules\Essentials\Entities\EssentialsAttendance;
 
 class ReportController extends Controller
 {
@@ -5418,6 +5419,124 @@ class ReportController extends Controller
         $currentPageTotalMarginPercentage = array_slice($data['total_margin_percentage'], ($pageNumber - 1) * 8, 8);
 
         return view('report.weekly-margin', compact('currentPageWeeks', 'currentPageRevenue', 'currentPageServiceRevenue', 'currentPageProductRevenue', 'currentPageCogs', 'currentPageTotalMargin', 'currentPageTotalMarginPercentage', 'pageNumber', 'pages', 'year', 'month'));
+    }
+
+    /**
+     * Shows time clock report
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function getTimeClockReport(Request $request)
+    {
+        if (! auth()->user()->can('time_clock_report.view')) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $business_id = $request->session()->get('user.business_id');
+
+        $users = User::allUsersDropdown($business_id, false);
+        $business_locations = BusinessLocation::forDropdown($business_id, true);
+
+        $business_details = $this->businessUtil->getDetails($business_id);
+        $pos_settings = empty($business_details->pos_settings) ? $this->businessUtil->defaultPosSettings() : json_decode($business_details->pos_settings, true);
+
+        if ($request->ajax()) {
+
+            $start_date = $request->get('start_date');
+            $end_date = $request->get('end_date');
+
+            //$location_id = $request->get('location_id');
+            $created_by = $request->get('created_by');
+
+            $query= EssentialsAttendance::where('essentials_attendances.business_id', $business_id)
+                    ->join('users as u', 'u.id', '=', 'essentials_attendances.user_id')
+                    ->leftjoin('essentials_shifts as es', 'es.id', '=', 'essentials_attendances.essentials_shift_id')
+                    ->whereNotNull('essentials_attendances.clock_in_time')
+                    ->whereNotNull('essentials_attendances.clock_out_time')
+                    ->select([
+                                'essentials_attendances.id',
+                                'clock_in_time',
+                                'clock_out_time',
+                                'u.hourly_rate as hourly_rate',
+                                DB::raw("(SUM(TIMESTAMPDIFF(HOUR, clock_in_time, clock_out_time)) + (SUM(TIMESTAMPDIFF(MINUTE, clock_in_time, clock_out_time) % 60) / 60)) * u.hourly_rate AS total_hourly_payment"),
+                                DB::raw('DATE(clock_in_time) as date'),
+                                DB::raw("CONCAT(COALESCE(u.surname, ''), ' ', COALESCE(u.first_name, ''), ' ', COALESCE(u.last_name, '')) as user")
+                            ])->groupBy('essentials_attendances.id');
+
+                $permitted_locations = auth()->user()->permitted_locations();
+                //Check for permitted locations of a user
+                if ($permitted_locations != 'all') {
+                    $permitted_locations_array = [];
+    
+                    foreach ($permitted_locations as $loc_id) {
+                        $permitted_locations_array[] = 'location.'.$loc_id;
+                    }
+                    $permission_ids = Permission::whereIn('name', $permitted_locations_array)
+                                            ->pluck('id');
+    
+                    $query->join('model_has_permissions as mhp', 'mhp.model_id', '=', 'u.id')->whereIn('mhp.permission_id', $permission_ids);
+                }
+
+                if (! empty($start_date) && ! empty($end_date)) {
+                    $query->whereDate('clock_in_time', '>=', $start_date)
+                        ->whereDate('clock_in_time', '<=', $end_date);
+                }
+
+                if (empty($start_date) && ! empty($end_date)) {
+                    $query->whereDate('clock_in_time', '<=', $end_date);
+                }
+
+                // //Filter by the location
+                // if (! empty($location_id)) {
+                //     $query->where('t.location_id', $location_id);
+                // }
+
+                if (! empty($created_by)) {
+                    $query->where('essentials_attendances.user_id', $created_by);
+                }
+            // $attendance = $query->get()->toArray();
+            // echo "<pre>";
+            // print_r($attendance);
+            // echo "</pre>";
+            return Datatables::of($query)
+                ->editColumn('work_duration', function ($row) {
+                    $clock_in = \Carbon::parse($row->clock_in_time);
+                    if (! empty($row->clock_out_time)) {
+                        $clock_out = \Carbon::parse($row->clock_out_time);
+                    } else {
+                        $clock_out = \Carbon::now();
+                    }
+                    $duration_in_minutes = $clock_in->diffInMinutes($clock_out);
+                    $html = $clock_in->diffForHumans($clock_out, true, true, 2);
+
+                    return '<span class="work-duration" data-duration="' . $duration_in_minutes . '">' . $html . '</span>';
+                })
+                ->editColumn('clock_in', function ($row) {
+                    $html = \Carbon::createFromTimestamp(strtotime($row->clock_in_time))->format('m/d/Y h:i A');
+                    return $html;
+                })
+                ->editColumn('clock_out', function ($row) {
+                    $html = \Carbon::createFromTimestamp(strtotime($row->clock_out_time))->format('m/d/Y h:i A');
+                    return $html;
+                })
+                ->editColumn('date', '{{@format_date($date)}}')
+                ->editColumn('total_hourly_payment', function ($row) {
+                    return '<span class="total-hourly-payment" data-orig-value="'.$row->total_hourly_payment.'">'.
+                    $this->transactionUtil->num_f($row->total_hourly_payment, true).'</span>';
+                })
+                ->editColumn('hourly_rate', function ($row) {
+                    return '<span class="hourly-rate" data-orig-value="'.$row->hourly_rate.'">'.
+                    $this->transactionUtil->num_f($row->hourly_rate, true).'</span>';
+                })
+                ->rawColumns(['action', 'clock_in', 'work_duration', 'clock_out','total_hourly_payment','hourly_rate'])
+                ->filterColumn('user', function ($query, $keyword) {
+                    $query->whereRaw("CONCAT(COALESCE(u.surname, ''), ' ', COALESCE(u.first_name, ''), ' ', COALESCE(u.last_name, '')) like ?", ["%{$keyword}%"]);
+                })
+                ->make(true);
+        }
+
+        return view('report.time_clock')
+                ->with(compact('users', 'business_locations', 'pos_settings'));
     }
 
 }

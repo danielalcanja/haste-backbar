@@ -314,7 +314,8 @@ Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone', 
     // Weekly reports
     Route::get('/reports/weekly-margin-report', [ReportController::class, 'getWeeklyMarginReport'])->name('weekly-margin.report');
 
-    Route::get('business-location/activate-deactivate/{location_id}', [BusinessLocationController::class, 'activateDeactivateLocation']);
+    // Time Clock report
+    Route::get('/reports/time-clock-report', [ReportController::class, 'getTimeClockReport']);
 
     //Business Location Settings...
     Route::prefix('business-location/{location_id}')->name('location.')->group(function () {
