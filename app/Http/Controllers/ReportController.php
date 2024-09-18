@@ -5360,6 +5360,31 @@ class ReportController extends Controller
                             END) AS p_revenue,
                             COALESCE
                             (
+                                (SELECT SUM(tax_amount) 
+                                FROM transactions t_tax
+                                WHERE t_tax.business_id = '".$business_id."' 
+                                AND t_tax.type = 'sell' 
+                                AND t_tax.status = 'final' 
+                                AND YEAR(t_tax.transaction_date) = '".$year."'
+                                AND MONTH(t_tax.transaction_date) = '".$month."'
+                                AND DATE_FORMAT(DATE_SUB(t_tax.transaction_date, INTERVAL (WEEKDAY(t_tax.transaction_date)) DAY), '%Y-%m-%d') = DATE_FORMAT(DATE_SUB(t.transaction_date, INTERVAL (WEEKDAY(t.transaction_date)) DAY), '%Y-%m-%d')
+                                )
+                            ) AS tax,
+                            COALESCE
+                            (
+                                (SELECT SUM(additional_expense_value_1) 
+                                FROM transactions t_tips
+                                WHERE t_tips.business_id = '".$business_id."' 
+                                AND t_tips.type = 'sell' 
+                                AND t_tips.status = 'final'
+                                AND t_tips.additional_expense_key_1 = 'GratuityAmount' 
+                                AND YEAR(t_tips.transaction_date) = '".$year."'
+                                AND MONTH(t_tips.transaction_date) = '".$month."'
+                                AND DATE_FORMAT(DATE_SUB(t_tips.transaction_date, INTERVAL (WEEKDAY(t_tips.transaction_date)) DAY), '%Y-%m-%d') = DATE_FORMAT(DATE_SUB(t.transaction_date, INTERVAL (WEEKDAY(t.transaction_date)) DAY), '%Y-%m-%d')
+                                )
+                            ) AS tips,
+                            COALESCE
+                            (
                                 (SELECT 
                                     SUM(((tsl.unit_price_inc_tax * tsl.quantity) - COALESCE(cmsn_agents.discount_amount, 0)) * COALESCE(cmsn_agents.cmmsn_percent, 0) / 100)
                                     FROM transactions t_inner
@@ -5391,6 +5416,8 @@ class ReportController extends Controller
                         wr.revenue,
                         wr.s_revenue,
                         wr.p_revenue,
+                        wr.tax,
+                        wr.tips,
                         wr.cogs
                     FROM 
                         weekly_revenue wr
@@ -5401,15 +5428,19 @@ class ReportController extends Controller
              ");
 
         // Prepare data for display and pagination
-        $data = ['weeks' => [], 'revenue' => [], 's_revenue' => [], 'p_revenue' => [], 'cogs' => [] , 'total_margin' => [] , 'total_margin_percentage' => []];
+        $data = ['weeks' => [], 'revenue' => [], 's_revenue' => [], 'p_revenue' => [], 'tax' => [], 'tips' => [], 'cogs' => [] , 'total_margin' => [] , 'total_margin_percentage' => []];
         foreach ($results as $row) {
+            $total_revenue = $row->revenue + $row->tax + $row->tips;
+            $total_cogs = $row->cogs + $row->total_hourly_payment;
             $data['weeks'][] = $row->week_start_date;
-            $data['revenue'][] = $row->revenue;
+            $data['revenue'][] = $total_revenue;
             $data['s_revenue'][] = $row->s_revenue;
             $data['p_revenue'][] = $row->p_revenue;
-            $data['cogs'][] = $row->cogs + $row->total_hourly_payment;
-            $data['total_margin'][] = $row->revenue - $row->cogs;
-            $data['total_margin_percentage'][] = ((($row->revenue - $row->cogs)/$row->revenue)*100);
+            $data['tax'][] = $row->tax;
+            $data['tips'][] = $row->tips;
+            $data['cogs'][] = $total_cogs;
+            $data['total_margin'][] = $total_revenue - $total_cogs;
+            $data['total_margin_percentage'][] = ((($total_revenue - $total_cogs)/$total_revenue)*100);
         }
         // echo "<pre>";
         // print_r($data);
@@ -5423,8 +5454,10 @@ class ReportController extends Controller
         $currentPageProductRevenue = array_slice($data['p_revenue'], ($pageNumber - 1) * 8, 8);
         $currentPageTotalMargin = array_slice($data['total_margin'], ($pageNumber - 1) * 8, 8);
         $currentPageTotalMarginPercentage = array_slice($data['total_margin_percentage'], ($pageNumber - 1) * 8, 8);
+        $currentPageTax = array_slice($data['tax'], ($pageNumber - 1) * 8, 8);
+        $currentPageTips = array_slice($data['tips'], ($pageNumber - 1) * 8, 8);
 
-        return view('report.weekly-margin', compact('currentPageWeeks', 'currentPageRevenue', 'currentPageServiceRevenue', 'currentPageProductRevenue', 'currentPageCogs', 'currentPageTotalMargin', 'currentPageTotalMarginPercentage', 'pageNumber', 'pages', 'year', 'month'));
+        return view('report.weekly-margin', compact('currentPageWeeks', 'currentPageRevenue', 'currentPageServiceRevenue', 'currentPageProductRevenue', 'currentPageCogs', 'currentPageTotalMargin', 'currentPageTotalMarginPercentage', 'currentPageTax', 'currentPageTips', 'pageNumber', 'pages', 'year', 'month'));
     }
 
     /**
