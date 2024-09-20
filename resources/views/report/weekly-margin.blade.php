@@ -66,6 +66,12 @@
                                     @endforeach
                                 </tr>
                                 <tr>
+                                    <td><b>@lang('lang_v1.total_revenue')</b></td>
+                                    @foreach($currentPageRevenue as $revenue)
+                                        <td><span class="display_currency" data-currency_symbol="true">{{ $revenue }}</span></td>
+                                    @endforeach
+                                </tr>
+                                <tr>
                                     <td><b>@lang('lang_v1.tax')</b></td>
                                     @foreach($currentPageTax as $tax)
                                         <td><span class="display_currency" data-currency_symbol="true">{{ $tax }}</span></td>
@@ -75,12 +81,6 @@
                                     <td><b>@lang('lang_v1.tips')</b></td>
                                     @foreach($currentPageTips as $tips)
                                         <td><span class="display_currency" data-currency_symbol="true">{{ $tips }}</span></td>
-                                    @endforeach
-                                </tr>
-                                <tr>
-                                    <td><b>@lang('lang_v1.total_revenue')</b></td>
-                                    @foreach($currentPageRevenue as $revenue)
-                                        <td><span class="display_currency" data-currency_symbol="true">{{ $revenue }}</span></td>
                                     @endforeach
                                 </tr>
                                 <tr>

@@ -5430,7 +5430,7 @@ class ReportController extends Controller
         // Prepare data for display and pagination
         $data = ['weeks' => [], 'revenue' => [], 's_revenue' => [], 'p_revenue' => [], 'tax' => [], 'tips' => [], 'cogs' => [] , 'total_margin' => [] , 'total_margin_percentage' => []];
         foreach ($results as $row) {
-            $total_revenue = $row->revenue + $row->tax + $row->tips;
+            $total_revenue = $row->revenue;
             $total_cogs = $row->cogs + $row->total_hourly_payment;
             $data['weeks'][] = $row->week_start_date;
             $data['revenue'][] = $total_revenue;
