@@ -5439,8 +5439,10 @@ class ReportController extends Controller
             $data['tax'][] = $row->tax;
             $data['tips'][] = $row->tips;
             $data['cogs'][] = $total_cogs;
-            $data['total_margin'][] = $total_revenue - $total_cogs;
-            $data['total_margin_percentage'][] = ((($total_revenue - $total_cogs)/$total_revenue)*100);
+            //$data['total_margin'][] = $total_revenue - $total_cogs;
+            //$data['total_margin_percentage'][] = ((($total_revenue - $total_cogs)/$total_revenue)*100);
+            $data['total_margin'][] = $total_cogs - $total_revenue;
+            $data['total_margin_percentage'][] = ((($total_cogs - $total_revenue)/$total_cogs)*100);
         }
         // echo "<pre>";
         // print_r($data);
