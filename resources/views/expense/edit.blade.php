@@ -41,6 +41,12 @@
             </p>
           </div>
         </div>
+        <div class="col-sm-4">
+					<div class="form-group">
+						{!! Form::label('expense_product_id', __('lang_v1.product') . ':') !!}
+						{!! Form::select('expense_product_id', $products, $expense->expense_product_id, ['placeholder' => __('messages.please_select'), 'class' => 'form-control select2']); !!}
+					</div>
+				</div>
         <div class="clearfix"></div>
         <div class="col-sm-4">
           <div class="form-group">

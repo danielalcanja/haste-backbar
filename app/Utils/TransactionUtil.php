@@ -5775,7 +5775,7 @@ class TransactionUtil extends Util
     {
         $transaction_data = $request->only(['ref_no', 'transaction_date',
             'location_id', 'final_total', 'expense_for', 'additional_notes',
-            'expense_category_id', 'tax_id', 'contact_id', ]);
+            'expense_category_id', 'tax_id', 'contact_id', 'expense_product_id']);
 
         $transaction_data['business_id'] = $business_id;
         $transaction_data['created_by'] = $user_id;
@@ -5898,7 +5898,7 @@ class TransactionUtil extends Util
         $transaction_data['recur_interval_type'] = ! empty($request->input('recur_interval_type')) ? $request->input('recur_interval_type') : $transaction->recur_interval_type;
         $transaction_data['recur_repetitions'] = ! empty($request->input('recur_repetitions')) ? $request->input('recur_repetitions') : $transaction->recur_repetitions;
         $transaction_data['subscription_repeat_on'] = ! empty($request->input('subscription_repeat_on')) ? $request->input('subscription_repeat_on') : $transaction->subscription_repeat_on;
-
+        $transaction_data['expense_product_id'] = ! empty($request->input('expense_product_id')) ? $request->input('expense_product_id') : null;
         $transaction->update($transaction_data);
         $transaction->save();
 

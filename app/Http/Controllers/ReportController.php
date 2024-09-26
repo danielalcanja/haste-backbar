@@ -5397,7 +5397,26 @@ class ReportController extends Controller
                                     AND YEAR(t_inner.transaction_date) = '".$year."'
                                     AND MONTH(t_inner.transaction_date) = '".$month."'
                                 )
-                            ) AS cogs
+                            ) AS cogs,
+                            COALESCE
+                            (
+                                (SELECT 
+                                    SUM(CASE 
+                                        WHEN t_exp.expense_product_id IS NOT NULL AND t_exp.expense_category_id = 40 AND TP.is_return = 1 THEN -1 * TP.amount
+                                        WHEN t_exp.expense_product_id IS NOT NULL AND t_exp.expense_category_id = 40 THEN TP.amount
+                                        ELSE 0 
+                                    END)
+                                    FROM transactions t_exp
+                                    LEFT JOIN transaction_payments TP ON t_exp.id = TP.transaction_id
+                                    WHERE t_exp.business_id = '".$business_id."' 
+                                        AND t_exp.type = 'expense' 
+                                        AND t_exp.status = 'final'
+                                        AND t_exp.payment_status IN ('paid', 'partial')
+                                        AND YEAR(t_exp.transaction_date) = '".$year."'
+                                        AND MONTH(t_exp.transaction_date) = '".$month."'
+                                        AND DATE_FORMAT(DATE_SUB(t_exp.transaction_date, INTERVAL (WEEKDAY(t_exp.transaction_date)) DAY), '%Y-%m-%d') = DATE_FORMAT(DATE_SUB(t.transaction_date, INTERVAL (WEEKDAY(t.transaction_date)) DAY), '%Y-%m-%d')
+                                )
+                            ) AS expenses
                         FROM
                             transactions AS t
                         INNER JOIN 
@@ -5418,7 +5437,8 @@ class ReportController extends Controller
                         wr.p_revenue,
                         wr.tax,
                         wr.tips,
-                        wr.cogs
+                        wr.cogs,
+                        wr.expenses
                     FROM 
                         weekly_revenue wr
                     LEFT JOIN 
@@ -5428,7 +5448,7 @@ class ReportController extends Controller
              ");
 
         // Prepare data for display and pagination
-        $data = ['weeks' => [], 'revenue' => [], 's_revenue' => [], 'p_revenue' => [], 'tax' => [], 'tips' => [], 'cogs' => [] , 'total_margin' => [] , 'total_margin_percentage' => []];
+        $data = ['weeks' => [], 'revenue' => [], 's_revenue' => [], 'p_revenue' => [], 'tax' => [], 'tips' => [], 'cogs' => [] , 'total_margin' => [] , 'total_margin_percentage' => [],'backbar_expenses' => []];
         foreach ($results as $row) {
             $total_revenue = $row->revenue;
             $total_cogs = $row->cogs + $row->total_hourly_payment;
@@ -5446,6 +5466,7 @@ class ReportController extends Controller
             } else {
                 $data['total_margin_percentage'][] = 0;
             }
+            $data['backbar_expenses'][] = $row->expenses;
         }
         // echo "<pre>";
         // print_r($data);
@@ -5461,8 +5482,9 @@ class ReportController extends Controller
         $currentPageTotalMarginPercentage = array_slice($data['total_margin_percentage'], ($pageNumber - 1) * 8, 8);
         $currentPageTax = array_slice($data['tax'], ($pageNumber - 1) * 8, 8);
         $currentPageTips = array_slice($data['tips'], ($pageNumber - 1) * 8, 8);
+        $currentPageBackbarExpenses = array_slice($data['backbar_expenses'], ($pageNumber - 1) * 8, 8);
 
-        return view('report.weekly-margin', compact('currentPageWeeks', 'currentPageRevenue', 'currentPageServiceRevenue', 'currentPageProductRevenue', 'currentPageCogs', 'currentPageTotalMargin', 'currentPageTotalMarginPercentage', 'currentPageTax', 'currentPageTips', 'pageNumber', 'pages', 'year', 'month'));
+        return view('report.weekly-margin', compact('currentPageWeeks', 'currentPageRevenue', 'currentPageServiceRevenue', 'currentPageProductRevenue', 'currentPageCogs', 'currentPageTotalMargin', 'currentPageTotalMarginPercentage', 'currentPageTax', 'currentPageTips', 'currentPageBackbarExpenses', 'pageNumber', 'pages', 'year', 'month'));
     }
 
     /**

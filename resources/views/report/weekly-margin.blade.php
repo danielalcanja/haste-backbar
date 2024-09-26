@@ -91,8 +91,8 @@
                                 </tr>
                                 <tr>
                                     <td><b>@lang('lang_v1.backbar_expenses')</b></td>
-                                    @foreach($currentPageWeeks as $weekStartDate)
-                                        <td><span class="display_currency" data-currency_symbol="true">0.00</span></td>
+                                    @foreach($currentPageBackbarExpenses as $backbarExpenses)
+                                        <td><span class="display_currency" data-currency_symbol="true">{{ $backbarExpenses }}</span></td>
                                     @endforeach
                                 </tr>
                                 <tr>

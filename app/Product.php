@@ -222,4 +222,28 @@ class Product extends Model
     {
         return $this->hasMany(\App\ProductRack::class);
     }
+
+    /**
+     * Product Dropdown
+     *
+     * @param  int  $business_id
+     * @param  string  $type product type
+     * @return array
+     */
+    public static function forDropdown($business_id, $type)
+    {
+        $products = Product::where('business_id', $business_id)
+                            ->where('type', $type)
+                            ->where(function ($query) {
+                                $query->where('ptype', '')
+                                      ->orWhereNull('ptype');
+                            })
+                            ->select('name', 'id')
+                            ->orderBy('name', 'asc')
+                            ->get();
+
+        $dropdown = $products->pluck('name', 'id');
+
+        return $dropdown;
+    }
 }

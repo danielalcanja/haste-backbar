@@ -18,6 +18,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Yajra\DataTables\Facades\DataTables;
 use App\Events\ExpenseCreatedOrModified;
+use App\Product;
 
 class ExpenseController extends Controller
 {
@@ -325,8 +326,10 @@ class ExpenseController extends Controller
                 ->with(compact('expense_categories', 'business_locations', 'users', 'taxes', 'payment_line', 'payment_types', 'accounts', 'bl_attributes', 'contacts'));
         }
 
+        $products = Product::forDropdown($business_id,'single');
+
         return view('expense.create')
-            ->with(compact('expense_categories', 'business_locations', 'users', 'taxes', 'payment_line', 'payment_types', 'accounts', 'bl_attributes', 'contacts'));
+            ->with(compact('expense_categories', 'business_locations', 'users', 'taxes', 'payment_line', 'payment_types', 'accounts', 'bl_attributes', 'contacts','products'));
     }
 
     /**
@@ -446,8 +449,10 @@ class ExpenseController extends Controller
                         ->toArray();
         }
 
+        $products = Product::forDropdown($business_id,'single');
+
         return view('expense.edit')
-            ->with(compact('expense', 'expense_categories', 'business_locations', 'users', 'taxes', 'contacts', 'sub_categories'));
+            ->with(compact('expense', 'expense_categories', 'business_locations', 'users', 'taxes', 'contacts', 'sub_categories','products'));
     }
 
     /**
