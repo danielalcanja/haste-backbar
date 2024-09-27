@@ -33,5 +33,8 @@
 	<td>
 		{!! Form::textarea('attendance[' . $user->id . '][clock_out_note]', !empty($attendance->clock_out_note) ? $attendance->clock_out_note : null, ['class' => 'form-control', 'placeholder' => __( 'essentials::lang.clock_out_note'), 'rows' => 3 ]); !!}
 	</td>
+	<td>
+		{!! Form::text('attendance[' . $user->id . '][bonus]', !empty($attendance->bonus) ? $attendance->bonus : null, ['class' => 'form-control input_number', 'placeholder' => 0.00 ]); !!}
+	</td>
 	<td><button type="button" class="tw-dw-btn tw-dw-btn-outline tw-dw-btn-xs tw-dw-btn-error remove_attendance_row"><i class="fa fa-times"></i></button></td>
 </tr>

@@ -5330,7 +5330,8 @@ class ReportController extends Controller
                         SELECT 
                             DATE_FORMAT(DATE_SUB(ea.clock_in_time, INTERVAL (WEEKDAY(ea.clock_in_time)) DAY), '%m/%d/%Y') AS week_start_date,
                             SUM((TIMESTAMPDIFF(HOUR, ea.clock_in_time, ea.clock_out_time) 
-                                + TIMESTAMPDIFF(MINUTE, ea.clock_in_time, ea.clock_out_time) % 60 / 60) * u.hourly_rate) AS total_hourly_payment
+                                + TIMESTAMPDIFF(MINUTE, ea.clock_in_time, ea.clock_out_time) % 60 / 60) * u.hourly_rate) AS total_hourly_payment,
+                            SUM(ea.bonus) as bonus 
                         FROM 
                             essentials_attendances ea
                         LEFT JOIN 
@@ -5432,6 +5433,7 @@ class ReportController extends Controller
                     SELECT 
                         wr.week_start_date,
                         wp.total_hourly_payment,
+                        wp.bonus,
                         wr.revenue,
                         wr.s_revenue,
                         wr.p_revenue,
@@ -5451,7 +5453,7 @@ class ReportController extends Controller
         $data = ['weeks' => [], 'revenue' => [], 's_revenue' => [], 'p_revenue' => [], 'tax' => [], 'tips' => [], 'cogs' => [] , 'total_margin' => [] , 'total_margin_percentage' => [],'backbar_expenses' => []];
         foreach ($results as $row) {
             $total_revenue = $row->revenue;
-            $total_cogs = $row->cogs + $row->total_hourly_payment;
+            $total_cogs = $row->cogs + $row->total_hourly_payment + $row->bonus;
             $data['weeks'][] = $row->week_start_date;
             $data['revenue'][] = $total_revenue;
             $data['s_revenue'][] = $row->s_revenue;

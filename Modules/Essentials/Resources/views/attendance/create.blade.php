@@ -19,10 +19,11 @@
     				<th width="10%">@lang('essentials::lang.employee')</th>
     				<th width="15%">@lang('essentials::lang.clock_in_time')</th>
     				<th width="15%">@lang('essentials::lang.clock_out_time')</th>
-    				<th width="15%">@lang('essentials::lang.shift')</th>
+    				<th width="12%">@lang('essentials::lang.shift')</th>
     				<th width="12%">@lang('essentials::lang.ip_address')</th>
-    				<th width="15%">@lang('essentials::lang.clock_in_note')</th>
-    				<th width="15%">@lang('essentials::lang.clock_out_note')</th>
+    				<th width="12%">@lang('essentials::lang.clock_in_note')</th>
+    				<th width="12%">@lang('essentials::lang.clock_out_note')</th>
+					<th width="9%">@lang('essentials::lang.bonus')</th>
     				<th width="3%">&nbsp;</th>
     			</thead>
     			<tbody>

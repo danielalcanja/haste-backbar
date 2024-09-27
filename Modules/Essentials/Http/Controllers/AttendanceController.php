@@ -65,6 +65,7 @@ class AttendanceController extends Controller
                                 'clock_in_note',
                                 'clock_out_note',
                                 'ip_address',
+                                'bonus',
                                 DB::raw('DATE(clock_in_time) as date'),
                                 DB::raw("CONCAT(COALESCE(u.surname, ''), ' ', COALESCE(u.first_name, ''), ' ', COALESCE(u.last_name, '')) as user"),
                                 'es.name as shift_name', 'clock_in_location', 'clock_out_location',
@@ -144,7 +145,10 @@ class AttendanceController extends Controller
                         return $html;
                     })
                     ->editColumn('date', '{{@format_date($date)}}')
-                    ->rawColumns(['action', 'clock_in', 'work_duration', 'clock_out'])
+                    ->editColumn('bonus', '
+                        @format_currency($bonus)
+                    ')
+                    ->rawColumns(['action', 'clock_in', 'work_duration', 'clock_out','bonus'])
                     ->filterColumn('user', function ($query, $keyword) {
                         $query->whereRaw("CONCAT(COALESCE(u.surname, ''), ' ', COALESCE(u.first_name, ''), ' ', COALESCE(u.last_name, '')) like ?", ["%{$keyword}%"]);
                     })
@@ -228,6 +232,7 @@ class AttendanceController extends Controller
                             'clock_in_note' => $value['clock_in_note'],
                             'clock_out_note' => $value['clock_out_note'],
                             'essentials_shift_id' => $value['essentials_shift_id'],
+                            'bonus' => ! empty($value['bonus']) ? $this->moduleUtil->num_uf($value['bonus']) : 0,
                         ]
                     );
                 }
@@ -284,10 +289,12 @@ class AttendanceController extends Controller
         }
 
         try {
-            $input = $request->only(['clock_in_time', 'clock_out_time', 'ip_address', 'clock_in_note', 'clock_out_note']);
+            $input = $request->only(['clock_in_time', 'clock_out_time', 'ip_address', 'clock_in_note', 'clock_out_note','bonus']);
 
             $input['clock_in_time'] = $this->moduleUtil->uf_date($input['clock_in_time'], true);
             $input['clock_out_time'] = ! empty($input['clock_out_time']) ? $this->moduleUtil->uf_date($input['clock_out_time'], true) : null;
+
+            $input['bonus'] = ! empty($input['bonus']) ? $this->moduleUtil->num_uf($input['bonus']) : 0;
 
             $attendance = EssentialsAttendance::where('business_id', $business_id)
                                             ->where('id', $id)

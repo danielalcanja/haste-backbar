@@ -34,14 +34,18 @@
 	        	{!! Form::label('ip_address', __( 'essentials::lang.ip_address' ) . ':') !!}
 	        	{!! Form::text('ip_address', $attendance->ip_address, ['class' => 'form-control', 'placeholder' => __( 'essentials::lang.ip_address') ]); !!}
 	      	</div>
+			<div class="form-group col-md-6">
+	        	{!! Form::label('bonus', __( 'essentials::lang.bonus' ) . ':') !!}
+	        	{!! Form::text('bonus', @num_format($attendance->bonus), ['class' => 'form-control input_number', 'placeholder' => 0.00 ]); !!}
+	      	</div>
 	      	<div class="form-group col-md-12">
               {!! Form::label('clock_in_note', __( 'essentials::lang.clock_in_note' ) . ':') !!}
               {!! Form::textarea('clock_in_note', $attendance->clock_in_note, ['class' => 'form-control', 'placeholder' => __( 'essentials::lang.clock_in_note'), 'rows' => 3 ]); !!}
             </div>
-            <div class="form-group col-md-12">
-              {!! Form::label('clock_out_note', __( 'essentials::lang.clock_out_note' ) . ':') !!}
-              {!! Form::textarea('clock_out_note', $attendance->clock_out_note, ['class' => 'form-control', 'placeholder' => __( 'essentials::lang.clock_out_note'), 'rows' => 3 ]); !!}
-            </div>
+				<div class="form-group col-md-12">
+				{!! Form::label('clock_out_note', __( 'essentials::lang.clock_out_note' ) . ':') !!}
+				{!! Form::textarea('clock_out_note', $attendance->clock_out_note, ['class' => 'form-control', 'placeholder' => __( 'essentials::lang.clock_out_note'), 'rows' => 3 ]); !!}
+				</div>
     	</div>
     </div>
 

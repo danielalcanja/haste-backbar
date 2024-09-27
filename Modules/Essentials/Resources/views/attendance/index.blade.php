@@ -165,6 +165,7 @@
                                         <th>@lang('essentials::lang.work_duration')</th>
                                         <th>@lang('essentials::lang.ip_address')</th>
                                         <th>@lang('essentials::lang.shift')</th>
+                                        <th>@lang('essentials::lang.bonus')</th>
                                         @can('essentials.crud_all_attendance')
                                             <th>@lang( 'messages.action' )</th>
                                         @endcan
@@ -235,6 +236,7 @@
                     { data: 'work_duration', name: 'work_duration', orderable: false, searchable: false},
                     { data: 'ip_address', name: 'ip_address'},
                     { data: 'shift_name', name: 'es.name'},
+                    { data: 'bonus', name: 'bonus'},
                     @can('essentials.crud_all_attendance')
                         { data: 'action', name: 'action', orderable: false, searchable: false},
                     @endcan
