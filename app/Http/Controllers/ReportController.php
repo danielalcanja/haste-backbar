@@ -5607,4 +5607,101 @@ class ReportController extends Controller
                 ->with(compact('users', 'business_locations', 'pos_settings'));
     }
 
+    /**
+     * Shows services report
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function getServicesReport(Request $request)
+    {
+        if (! auth()->user()->can('services_report.view')) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $business_id = $request->session()->get('user.business_id');
+
+        $users = User::allUsersDropdown($business_id, false);
+        $business_locations = BusinessLocation::forDropdown($business_id, true);
+
+        $business_details = $this->businessUtil->getDetails($business_id);
+        $pos_settings = empty($business_details->pos_settings) ? $this->businessUtil->defaultPosSettings() : json_decode($business_details->pos_settings, true);
+
+        if ($request->ajax()) {
+
+            $start_date = $request->get('start_date');
+            $end_date = $request->get('end_date');
+
+            $location_id = $request->get('location_id');
+            $created_by = $request->get('created_by');
+
+            $query = CmsnAgent::join('users as u', 'u.id', '=', 'cmsn_agents.user_id')
+                ->leftjoin('transactions as t', 't.id', '=', 'cmsn_agents.transaction_id')
+                ->leftjoin('transaction_sell_lines as tsl', 'tsl.id', '=', 'cmsn_agents.transaction_sell_line_id')
+                ->join(
+                    'variations as v',
+                    'tsl.variation_id',
+                    '=',
+                    'v.id'
+                )
+                ->join('product_variations as pv', 'v.product_variation_id', '=', 'pv.id')
+                ->join('products as p', 'pv.product_id', '=', 'p.id')
+                ->where('t.business_id', $business_id)
+                ->where('t.type', 'sell')
+                ->where('t.status', 'final')
+                ->where('cmsn_agents.cmmsn_type', 'service')
+                ->groupBy('p.id')
+                ->select(
+                    'p.name as product_name', 
+                    DB::raw('COUNT(p.id) as services_count')
+                );
+                
+                $permitted_locations = auth()->user()->permitted_locations();
+                //Check for permitted locations of a user
+                if(!empty($permitted_locations)) {
+                    if ($permitted_locations != 'all') {
+                        $query->whereIn('t.location_id', $permitted_locations);
+                    }
+                }
+
+                if (! empty($start_date) && ! empty($end_date)) {
+                    $query->whereDate('t.transaction_date', '>=', $start_date)
+                        ->whereDate('t.transaction_date', '<=', $end_date);
+                }
+
+                if (empty($start_date) && ! empty($end_date)) {
+                    $query->whereDate('t.transaction_date', '<=', $end_date);
+                }
+
+                //Filter by the location
+                if (! empty($location_id)) {
+                    $query->where('t.location_id', $location_id);
+                }
+
+                if (! empty($created_by)) {
+                    $query->where('cmsn_agents.user_id', $created_by);
+                }
+            
+            //  $commission_products =  $query->get()->toArray();
+            //  echo "<pre>";
+            //  print_r($commission_products);
+            //  exit;  
+
+            return Datatables::of($query)
+                ->editColumn('product_name', function ($row) {
+                    $product_name = $row->product_name;
+                    if ($row->product_type == 'variable') {
+                        $product_name .= ' - '.$row->product_variation.' - '.$row->variation_name;
+                    }
+
+                    return $product_name;
+                })
+                ->editColumn('services_count', function ($row) {
+                    return '<span class="count" data-orig-value="'.$row->services_count.'">'.$row->services_count.'</span>';
+                })
+                ->rawColumns(['product_name','services_count'])
+                ->make(true);
+        }
+        return view('report.services')
+                ->with(compact('users', 'business_locations', 'pos_settings'));
+    }
 }

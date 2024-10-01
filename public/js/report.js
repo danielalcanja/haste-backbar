@@ -1749,10 +1749,72 @@ $(document).ready(function() {
             },
         });
 
-        //Commission filter
+        //Time clock filter
         $('select#time_clock_id, select#time_clock_business_id').change(function() {
             updateTimeClockReport();
         });
+    }
+
+    // Services report
+    if ($('#services_date_filter').length == 1) {
+        //date range setting
+        $('input#services_date_filter').daterangepicker(dateRangeSettings, function(start, end) {
+            $('input#services_date_filter').val(
+                start.format(moment_date_format) + ' ~ ' + end.format(moment_date_format)
+            );
+            updateServicesReport();
+        });
+        $('input#services_date_filter').on('apply.daterangepicker', function(ev, picker) {
+            $(this).val(
+                picker.startDate.format(moment_date_format) +
+                    ' ~ ' +
+                    picker.endDate.format(moment_date_format)
+            );
+        });
+    
+        $('input#services_date_filter').on('cancel.daterangepicker', function(ev, picker) {
+            $(this).val('');
+        });
+        
+        //Services summary
+        services_report = $('table#services_report').DataTable({
+            processing: true,
+            serverSide: true,
+            fixedHeader:false,
+            aaSorting: [[1, 'desc']],
+            ajax: {
+                url: '/reports/services-report',
+                data: function(d) {
+                    var start = $('input#services_date_filter')
+                        .data('daterangepicker')
+                        .startDate.format('YYYY-MM-DD');
+                    var end = $('input#services_date_filter')
+                        .data('daterangepicker')
+                        .endDate.format('YYYY-MM-DD');
+    
+                    (d.created_by = $('select#services_id').val()),
+                        (d.location_id = $('select#services_business_id').val()),
+                        (d.start_date = start),
+                        (d.end_date = end);
+                },
+            },
+            columns: [
+                { data: 'product_name', name: 'p.name'},
+                { data: 'services_count', name: 'services_count', searchable: false,}
+            ],
+            fnDrawCallback: function(oSettings) {
+                $('#services_footer_total_count').text(
+                    sum_table_col($('#services_report'), 'count')
+                );
+                __currency_convert_recursively($('#services_report'));
+            },
+        });
+
+        //Services filter
+        $('select#services_id, select#services_business_id').change(function() {
+            updateServicesReport();
+        });
+        $('#collapseFilter').collapse('show'); 
     }
 });
 
@@ -1766,6 +1828,11 @@ function updateCommissionReport() {
 //time report
 function updateTimeClockReport() {
     time_clock_report.ajax.reload();
+}
+
+//Services report
+function updateServicesReport() {
+    services_report.ajax.reload();
 }
 
 function updatePurchaseSell() {

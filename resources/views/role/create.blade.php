@@ -1454,6 +1454,14 @@
               </label>
             </div>
           </div>
+          <div class="col-md-12">
+            <div class="checkbox">
+              <label>
+                {!! Form::checkbox('permissions[]', 'services_report.view', false, 
+                [ 'class' => 'input-icheck']); !!} {{ __( 'role.services_report.view' ) }}
+              </label>
+            </div>
+          </div>
 
         </div>
         </div>

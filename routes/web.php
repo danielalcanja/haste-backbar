@@ -317,6 +317,9 @@ Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone', 
     // Time Clock report
     Route::get('/reports/time-clock-report', [ReportController::class, 'getTimeClockReport']);
 
+    // Services reports
+    Route::get('/reports/services-report', [ReportController::class, 'getServicesReport']);
+
     //Business Location Settings...
     Route::prefix('business-location/{location_id}')->name('location.')->group(function () {
         Route::get('settings', [LocationSettingsController::class, 'index'])->name('settings');
