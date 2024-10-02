@@ -6634,4 +6634,51 @@ class TransactionUtil extends Util
             // exit;
         return $totalsByMethod;
     }
+
+    public function importExpense($import_data, $business_id, $user_id, $format_data = true)
+    {
+        // $transaction_data = $request->only(['ref_no', 'transaction_date',
+        //     'location_id', 'final_total', 'expense_for', 'additional_notes',
+        //     'expense_category_id', 'tax_id', 'contact_id', 'expense_product_id']);
+
+        $transaction_data['location_id'] = $import_data['location_id'];
+        $transaction_data['additional_notes'] = $import_data['additional_notes'];
+        $transaction_data['expense_category_id'] = $import_data['expense_category_id'];
+        $transaction_data['business_id'] = $business_id;
+        $transaction_data['created_by'] = $user_id;
+        $transaction_data['type'] = 'expense';
+        $transaction_data['status'] = 'final';
+        $transaction_data['payment_status'] = 'due';
+        $transaction_data['final_total'] = $format_data ? $this->num_uf(
+                $import_data['final_total']
+            ) : $import_data['final_total'];
+        if (!empty($import_data['transaction_date'])) {
+            $transaction_data['transaction_date'] = $format_data ? $this->uf_date($import_data['transaction_date'], true) : $import_data['transaction_date'];
+        } else {
+            $transaction_data['transaction_date'] = \Carbon::now();
+        }
+
+        $transaction_data['total_before_tax'] = $import_data['final_total'];
+    
+        //Update reference count
+        $ref_count = $this->setAndGetReferenceCount('expense', $business_id);
+
+        //Generate reference number
+        $transaction_data['ref_no'] = $this->generateReferenceNumber('expense', $ref_count, $business_id);
+
+        $transaction = Transaction::create($transaction_data);
+
+        $payments[0] = ['amount' => $import_data['final_total'],
+                        'paid_on' =>  $import_data['transaction_date'],
+                        'method' => 'custom_pay_6'
+                    ];
+        
+        //add expense payment
+        $this->createOrUpdatePaymentLines($transaction, $payments, $business_id);
+
+        //update payment status
+        $this->updatePaymentStatus($transaction->id, $transaction->final_total);
+
+        return $transaction;
+    }
 }

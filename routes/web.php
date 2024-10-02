@@ -341,6 +341,10 @@ Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone', 
     //Expenses...
     Route::resource('expenses', ExpenseController::class);
 
+    //Expense Import
+    Route::get('/import-expense', [ExpenseController::class, 'expenseImport']);
+    Route::post('/import-expense/store', [ExpenseController::class, 'storeExpenseImportData']);
+
     //Transaction payments...
     // Route::get('/payments/opening-balance/{contact_id}', 'TransactionPaymentController@getOpeningBalancePayments');
     Route::get('/payments/show-child-payments/{payment_id}', [TransactionPaymentController::class, 'showChildPayments']);

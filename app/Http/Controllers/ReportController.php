@@ -5403,8 +5403,8 @@ class ReportController extends Controller
                             (
                                 (SELECT 
                                     SUM(CASE 
-                                        WHEN t_exp.expense_product_id IS NOT NULL AND t_exp.expense_category_id = 45 AND TP.is_return = 1 THEN -1 * TP.amount
-                                        WHEN t_exp.expense_product_id IS NOT NULL AND t_exp.expense_category_id = 45 THEN TP.amount
+                                        WHEN t_exp.expense_category_id = 45 AND TP.is_return = 1 THEN -1 * TP.amount
+                                        WHEN t_exp.expense_category_id = 45 THEN TP.amount
                                         ELSE 0 
                                     END)
                                     FROM transactions t_exp

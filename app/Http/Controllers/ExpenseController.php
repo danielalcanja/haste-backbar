@@ -19,6 +19,7 @@ use Illuminate\Support\Str;
 use Yajra\DataTables\Facades\DataTables;
 use App\Events\ExpenseCreatedOrModified;
 use App\Product;
+use Excel;
 
 class ExpenseController extends Controller
 {
@@ -548,5 +549,167 @@ class ExpenseController extends Controller
 
             return $output;
         }
+    }
+
+    /**
+     * Display import expense screen.
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function expenseImport()
+    {
+        // if (! auth()->user()->can('product.opening_stock')) {
+        //     abort(403, 'Unauthorized action.');
+        // }
+
+        $zip_loaded = extension_loaded('zip') ? true : false;
+
+        // $date_formats = Business::date_formats();
+        // $date_format = session('business.date_format');
+        // $date_format = isset($date_formats[$date_format]) ? $date_formats[$date_format] : $date_format;
+
+        //Check if zip extension it loaded or not.
+        if ($zip_loaded === false) {
+            $notification = ['success' => 0,
+                'msg' => 'Please install/enable PHP Zip archive for import',
+            ];
+
+            return view('expense.import_data')
+                ->with(compact('notification'));
+        } else {
+            return view('expense.import_data');
+        }
+    }
+
+    /**
+     * Imports the uploaded file to database.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
+     */
+    public function storeExpenseImportData(Request $request)
+    {
+        // if (! auth()->user()->can('product.opening_stock')) {
+        //     abort(403, 'Unauthorized action.');
+        // }
+
+        try {
+            
+            //Set maximum php execution time
+            ini_set('max_execution_time', 0);
+            ini_set('memory_limit', -1);
+            $transaction_date = $request->get('transaction_date', null);
+
+            if ($request->hasFile('expenses_csv') && !empty($transaction_date)) {
+                $file = $request->file('expenses_csv');
+
+                $parsed_array = Excel::toArray([], $file);
+                
+                //Remove header row
+                $imported_data = array_splice($parsed_array[0], 1);
+
+                $business_id = $request->session()->get('user.business_id');
+                $user_id = $request->session()->get('user.id');
+
+                $formated_data = [];
+
+                $is_valid = true;
+                $error_msg = '';
+
+                
+                DB::beginTransaction();
+                foreach ($imported_data as $key => $value) {
+                    $row_no = $key + 1;
+
+                    //Get location details.
+                    if (! empty(trim($value[0]))) {
+                        $location_name = trim($value[0]);
+                        $location = BusinessLocation::where('name', $location_name)
+                                            ->where('business_id', $business_id)
+                                            ->first();
+                        if (empty($location)) {
+                            $is_valid = false;
+                            $error_msg = "Location with name '$location_name' not found in row no. $row_no";
+                            break;
+                        }
+                    } else {
+                        $location = BusinessLocation::where('business_id', $business_id)->first();
+                    }
+
+                    if (! empty(trim($value[6]))) {
+                        $expense_amount = trim($value[6]);
+                    } else {
+                        $is_valid = false;
+                        $error_msg = "Invalid WHOLESALE COST in row no. $row_no";
+                        break;
+                    }
+
+                    $additional_notes = "";
+                    if (! empty(trim($value[1]))) {
+                        $additional_notes .= 'MANUFACTURER: '.$value[1].' || ';
+                    }
+                    
+                    if(! empty(trim($value[2]))){
+                        $additional_notes .= 'PRODUCT LINE: '.$value[2].' || ';
+                    }
+                    
+                    if(! empty(trim($value[3]))){
+                        $additional_notes .= 'CATEGORY: '.$value[3].' || ';
+                    }
+                    
+                    if(! empty(trim($value[4]))){
+                        $additional_notes .= 'PRODUCT: '.$value[4].' || ';
+                    }
+                    
+                    if(! empty(trim($value[5]))){
+                        $additional_notes .= 'AMOUNT USED (GRAMS): '.$value[5].' || ';
+                    }
+                    
+                    if(! empty(trim($value[7]))){
+                        $additional_notes .= 'RETAIL PRICE: '.$value[7].' ||';
+                    }
+                    
+                    if(! empty(trim($value[8]))){
+                        $additional_notes .= '#CONTAINERS/TUBES :'.$value[8].' || ';
+                    }
+
+                    $transaction_data = ['final_total' => trim($value[6]),
+                        'location_id' => $location->id,
+                        'transaction_date' => $transaction_date,
+                        'expense_category_id' => '45',
+                        'additional_notes' => $additional_notes
+                    ];
+
+                    $expense = $this->transactionUtil->importExpense($transaction_data, $business_id, $user_id);
+                    
+                    // echo "<pre>";
+                    // print_r($expense);
+                    $this->transactionUtil->activityLog($expense, 'added');
+
+                    event(new ExpenseCreatedOrModified($expense));
+                   
+                }
+            }
+
+            if (! $is_valid) {
+                throw new \Exception($error_msg);
+            }
+            $output = ['success' => 1,
+                'msg' => __('product.file_imported_successfully'),
+            ];
+
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::emergency('File:'.$e->getFile().'Line:'.$e->getLine().'Message:'.$e->getMessage());
+
+            $output = ['success' => 0,
+                'msg' => 'Message:'.$e->getMessage(),
+            ];
+
+            return redirect('import-expense')->with('notification', $output);
+        }
+
+        return redirect('import-expense')->with('status', $output);
     }
 }
