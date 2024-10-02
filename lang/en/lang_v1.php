@@ -1574,4 +1574,6 @@ return [
     'total_margin' => 'Total Margin',
     'total_margin_percentage' => 'Total Margin (%)',
     'hourly_rate' => 'Hourly Rate',
+    'import_expense' => 'Import Expenses',
+    'expense_amount' => 'Expense Amount',
 ];

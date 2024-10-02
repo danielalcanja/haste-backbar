@@ -558,9 +558,9 @@ class ExpenseController extends Controller
      */
     public function expenseImport()
     {
-        // if (! auth()->user()->can('product.opening_stock')) {
-        //     abort(403, 'Unauthorized action.');
-        // }
+        if (! auth()->user()->can('expense.import')) {
+            abort(403, 'Unauthorized action.');
+        }
 
         $zip_loaded = extension_loaded('zip') ? true : false;
 
@@ -589,9 +589,9 @@ class ExpenseController extends Controller
      */
     public function storeExpenseImportData(Request $request)
     {
-        // if (! auth()->user()->can('product.opening_stock')) {
-        //     abort(403, 'Unauthorized action.');
-        // }
+        if (! auth()->user()->can('expense.import')) {
+            abort(403, 'Unauthorized action.');
+        }
 
         try {
             

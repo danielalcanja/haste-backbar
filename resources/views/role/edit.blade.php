@@ -1560,6 +1560,14 @@
                       </label>
                     </div>
                   </div>
+                  <div class="col-md-12">
+                    <div class="checkbox">
+                      <label>
+                        {!! Form::checkbox('permissions[]', 'expense.import', in_array('expense.import', $role_permissions), 
+                        [ 'class' => 'input-icheck']); !!} {{ __( 'lang_v1.import_expense' ) }}
+                      </label>
+                    </div>
+                  </div>
                 </div>
             </div>
         @endif
