@@ -1507,6 +1507,9 @@ $(document).ready(function() {
 
     // commission report
     if ($('#cmmsn_date_filter').length == 1) {
+        
+        dateRangeSettings.startDate = moment().subtract(6, 'days');
+        dateRangeSettings.endDate = moment();
         //date range setting
         $('input#cmmsn_date_filter').daterangepicker(dateRangeSettings, function(start, end) {
             $('input#cmmsn_date_filter').val(
@@ -1684,6 +1687,8 @@ $(document).ready(function() {
 
     // time clock report
     if ($('#time_clock_date_filter').length == 1) {
+        dateRangeSettings.startDate = moment().subtract(6, 'days');
+        dateRangeSettings.endDate = moment();
         //date range setting
         $('input#time_clock_date_filter').daterangepicker(dateRangeSettings, function(start, end) {
             $('input#time_clock_date_filter').val(
@@ -1757,6 +1762,8 @@ $(document).ready(function() {
 
     // Services report
     if ($('#services_date_filter').length == 1) {
+        dateRangeSettings.startDate = moment().subtract(6, 'days');
+        dateRangeSettings.endDate = moment();
         //date range setting
         $('input#services_date_filter').daterangepicker(dateRangeSettings, function(start, end) {
             $('input#services_date_filter').val(
